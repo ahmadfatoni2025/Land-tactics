@@ -4,8 +4,8 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useAttendance, type AssetData } from '../hooks/useAttendance';
 import {
   QrCode, MapPin, Camera, Upload, Download, Loader2,
-  CheckCircle2, AlertCircle, Navigation, Tag, FileText,
-  Hash, Building2, User, ShieldCheck, Printer, RotateCcw, ChevronRight,
+  CheckCircle2, Navigation, Tag,
+  Building2, ShieldCheck, Printer, RotateCcw, ChevronRight,
 } from 'lucide-react';
 
 // Tipe data untuk form internal halaman ini
@@ -39,12 +39,11 @@ const categories = ['Elektronik', 'Kendaraan', 'Kantor', 'Infrastruktur', 'Gudan
 
 export const GenerateQRPage = () => {
   const navigate = useNavigate();
-  const { saveAsset, loading, error: serverError } = useAttendance();
+  const { saveAsset, loading } = useAttendance();
   const [form, setForm] = useState<AssetForm>(initialForm);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
-  const [gpsError, setGpsError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
 
@@ -58,15 +57,15 @@ export const GenerateQRPage = () => {
   const updateField = (field: keyof AssetForm, value: any) => setForm(f => ({ ...f, [field]: value }));
 
   const requestLocation = useCallback(() => {
-    if (!navigator.geolocation) return setGpsError('GPS tidak didukung');
-    setGpsLoading(true); setGpsError(null);
+    if (!navigator.geolocation) return alert('GPS tidak didukung');
+    setGpsLoading(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         updateField('lat', pos.coords.latitude);
         updateField('lng', pos.coords.longitude);
         setGpsLoading(false);
       },
-      () => { setGpsError('Gagal akses GPS'); setGpsLoading(false); },
+      () => { alert('Gagal akses GPS'); setGpsLoading(false); },
       { enableHighAccuracy: true, timeout: 10000 }
     );
   }, []);

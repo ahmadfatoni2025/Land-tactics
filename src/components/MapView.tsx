@@ -80,21 +80,17 @@ export const MapView = ({ checkIns, center, zoom = 13, className, layerType = 's
     if (!leafletMap.current || !tileLayer.current) return;
 
     let tileUrl = '';
-    let attribution = '';
 
     switch (layerType) {
       case 'satellite':
         tileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-        attribution = 'Tiles &copy; Esri &mdash; Source: Esri, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN';
         break;
       case 'terrain':
         tileUrl = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png';
-        attribution = 'Map data: &copy; OpenStreetMap contributors | Map style: &copy; OpenTopoMap';
         break;
       case 'standard':
       default:
         tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-        attribution = '&copy; OpenStreetMap contributors';
         break;
     }
 

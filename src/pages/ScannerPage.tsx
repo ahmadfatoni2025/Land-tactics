@@ -4,16 +4,13 @@ import { useAttendance } from '../hooks/useAttendance';
 import { Html5Qrcode } from 'html5-qrcode';
 import {
   MapPin, 
-  Mountain, 
   ShieldCheck, 
   Camera, 
   RotateCcw, 
   CheckCircle2, 
   Loader2, 
   Scan, 
-  AlertCircle,
-  Image as ImageIcon,
-  Upload
+  Image as ImageIcon
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 

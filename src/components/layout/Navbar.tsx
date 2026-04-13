@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Search, Bell, HelpCircle, Menu, X, QrCode } from 'lucide-react';
+import { Search, Bell, HelpCircle, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '../../lib/utils';
 

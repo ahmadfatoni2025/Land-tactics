@@ -9,8 +9,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
 
-const BUCKET_NAME = 'photos';
-
 /**
  * Memastikan bucket 'photos' sudah ada di Supabase Storage.
  * Jika belum ada, otomatis membuat bucket baru (public).
