@@ -1,0 +1,80 @@
+@import "tailwindcss";
+/* @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap'); */
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap');
+
+@theme {
+  --font-sans: 'Google Sans', sans-serif;
+  --color-cream: #faf8f4;
+  --color-cream-dark: #f2efe8;
+  --color-teal: #1a4d3e;
+  --color-teal-light: #2a6b55;
+  --color-teal-dark: #0f3529;
+  --color-amber: #e8a838;
+  --color-amber-light: #f5c460;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-cream);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #d4d0c8 transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: #d4d0c8;
+    border-radius: 10px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: #b8b4ab;
+  }
+}
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+}
+
+/* html5-qrcode overrides */
+#reader {
+  border: none !important;
+}
+
+#reader video {
+  border-radius: 12px !important;
+}
+
+#reader__scan_region {
+  min-height: 200px;
+}
+
+#reader__dashboard_section_csr button {
+  background-color: var(--color-teal) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 12px !important;
+  padding: 10px 20px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+}
+
+#reader__dashboard_section_csr select {
+  border-radius: 8px !important;
+  border: 1px solid #e5e2db !important;
+  padding: 8px 12px !important;
+}
