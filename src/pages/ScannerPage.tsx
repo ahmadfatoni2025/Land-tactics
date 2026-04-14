@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Scanner } from '../components/Scanner';
 import { useAttendance } from '../hooks/useAttendance';
 import { Html5Qrcode } from 'html5-qrcode';
@@ -10,7 +10,12 @@ import {
   CheckCircle2,
   Loader2,
   Scan,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Sparkles,
+  Leaf,
+  AlertTriangle,
+  Zap,
+  ChevronLeft
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -37,10 +42,14 @@ export const ScannerPage = () => {
 
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [scannedCategory, setScannedCategory] = useState<string>('');
+  const [manualAddress, setManualAddress] = useState<string>('');
+  const [isFetchingData, setIsFetchingData] = useState(false);
   const [fileScanError, setFileScanError] = useState<string | null>(null);
 
-  const { saveAsset, loading } = useAttendance();
+  const { saveAsset, getAssetByBarcode, loading } = useAttendance();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const requestLocation = useCallback(() => {
     setGpsError(null);
@@ -53,21 +62,36 @@ export const ScannerPage = () => {
   }, []);
 
   const handleScan = useCallback((text: string) => {
-    let id = text;
-    let name = '';
+    let finalId = text;
     try {
       const parsed = JSON.parse(text);
-      if (parsed.id) id = parsed.id;
-      if (parsed.name) name = parsed.name;
-    } catch (e) { }
+      if (parsed.id) finalId = parsed.id;
+    } catch (e) {
+      // Not JSON, use as is
+    }
 
-    setScannedId(id);
-    setAssetName(name);
+    setScannedId(finalId);
     setScannerActive(false);
     setStatus('scanned');
     setFileScanError(null);
     requestLocation();
   }, [requestLocation]);
+
+  // Fetch asset metadata from DB when ID changes
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!scannedId) return;
+      setIsFetchingData(true);
+      const asset = await getAssetByBarcode(scannedId);
+      if (asset) {
+        setAssetName(asset.asset_name || '');
+        setScannedCategory(asset.category || '');
+        if (asset.address) setManualAddress(asset.address);
+      }
+      setIsFetchingData(false);
+    };
+    fetchData();
+  }, [scannedId, getAssetByBarcode]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -93,7 +117,9 @@ export const ScannerPage = () => {
   };
 
   const handleCommit = async () => {
-    if (!scannedId || !coords || !photoFile) return alert('Lengkapi data wajib & foto tempat!');
+    if (!scannedId || !coords || !photoFile) {
+      return alert('Foto Bukti Perkembangan Wajib! Ambil foto tanaman untuk memvalidasi laporan ini.');
+    }
     setStatus('submitting');
 
     // Construct dynamic description
@@ -111,8 +137,10 @@ export const ScannerPage = () => {
     const result = await saveAsset({
       barcode_id: scannedId,
       asset_name: assetName,
+      category: scannedCategory,
       lat: coords.lat,
       lng: coords.lng,
+      address: manualAddress,
       photo_file: photoFile,
       condition: deployStatus,
       notes: combinedNotes,
@@ -134,7 +162,7 @@ export const ScannerPage = () => {
   };
 
   return (
-    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       <div id="qr-file-detector" className="hidden"></div>
 
       {/* Main Feature Header */}
@@ -146,293 +174,293 @@ export const ScannerPage = () => {
       </div>
 
       {/* Main Grid / Card */}
-      <div className="w-full bg-white rounded-2xl border border-stone-200/60 shadow-sm flex flex-col lg:flex-row overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
-
-        {/* LEFT PANEL: Scanner Focus */}
-        <div className="flex-1 p-6 md:p-8 lg:p-12 border-b lg:border-b-0 lg:border-r border-gray-100 flex flex-col">
-          <div className="mb-6 md:mb-8">
-            <h2 className="text-lg md:text-xl font-bold text-gray-900 leading-tight">Pantau Batch Tanaman</h2>
-            <p className="text-gray-500 text-xs md:text-sm mt-1">Pindai QR Code di lahan atau unggah foto QR untuk mulai melapor.</p>
-          </div>
-
-          <div className="space-y-4 md:space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] md:text-xs font-semibold text-gray-700 ml-1">Batch ID Terdeteksi</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  placeholder="Menunggu pemindaian..."
-                  value={scannedId || ''}
-                  className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 md:py-3 text-xs md:text-sm font-medium text-gray-900 focus:outline-none"
-                />
-                <button
-                  onClick={() => scannedId && navigator.clipboard.writeText(scannedId)}
-                  className="px-3 md:px-4 py-2.5 md:py-3 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center shrink-0"
-                >
-                  <RotateCcw size={14} className="md:w-4 md:h-4" />
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                onClick={() => setScannerActive(true)}
-                className="flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 text-white rounded-xl font-bold text-xs md:text-sm hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100"
-              >
-                <Camera size={18} />
-                Buka Kamera
-              </button>
-              <label className="flex items-center justify-center gap-2 py-3 px-4 bg-white border-2 border-dashed border-gray-200 text-gray-600 rounded-xl font-bold text-xs md:text-sm hover:border-indigo-400 hover:text-indigo-600 transition-all cursor-pointer">
-                <ImageIcon size={18} />
-                Pilih File QR
-                <input type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
-              </label>
-            </div>
-            {fileScanError && (
-              <p className="text-[10px] md:text-xs text-red-500 font-medium bg-red-50 p-2 rounded-lg border border-red-100 animate-pulse">
-                ⚠️ {fileScanError}
-              </p>
-            )}
-          </div>
-
-          {/* Scanner Area Wrapper */}
-          <div className="mt-8 md:mt-12 relative flex-1 min-h-[260px] md:min-h-[300px] flex flex-col items-center justify-center bg-stone-50 rounded-[20px] md:rounded-[28px] border border-dashed border-stone-200 overflow-hidden group">
-            <div className="absolute top-6 left-6 md:top-8 md:left-8 w-8 h-8 md:w-10 md:h-10 border-t-4 border-l-4 border-stone-300 rounded-tl-lg md:rounded-tl-xl opacity-30 group-hover:opacity-100 transition-opacity"></div>
-            <div className="absolute top-6 right-6 md:top-8 md:right-8 w-8 h-8 md:w-10 md:h-10 border-t-4 border-r-4 border-stone-300 rounded-tr-lg md:rounded-tr-xl opacity-30 group-hover:opacity-100 transition-opacity"></div>
-            <div className="absolute bottom-6 left-6 md:bottom-8 md:left-8 w-8 h-8 md:w-10 md:h-10 border-b-4 border-l-4 border-stone-300 rounded-bl-lg md:rounded-bl-xl opacity-30 group-hover:opacity-100 transition-opacity"></div>
-            <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8 w-8 h-8 md:w-10 md:h-10 border-b-4 border-r-4 border-stone-300 rounded-br-lg md:rounded-br-xl opacity-30 group-hover:opacity-100 transition-opacity"></div>
-
-            <div className="relative z-10 w-full h-full flex items-center justify-center p-6 md:p-10 text-center">
-              {scannerActive ? (
-                <div className="w-full max-w-[280px] md:max-w-sm aspect-square bg-black rounded-xl md:rounded-2xl overflow-hidden relative shadow-2xl">
-                  <Scanner onResult={handleScan} isActive={scannerActive} />
-                  <div className="absolute inset-0 z-20 pointer-events-none overflow-hidden">
-                    <div className="w-full h-1 bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.8)] animate-scan-laser"></div>
-                  </div>
+      <div className={cn(
+        "w-full bg-white rounded-[48px] border border-stone-100 shadow-[0_22px_70px_4px_rgba(0,0,0,0.06)] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-1000",
+        !scannedId ? "max-w-2xl mx-auto" : "max-w-6xl mx-auto"
+      )}>
+        <div className="flex flex-col">
+          {/* STEP 1: SCANNER (Pro-Focus Mode) */}
+          {!scannedId ? (
+            <div className="flex-1 p-10 md:p-16 lg:p-20 flex flex-col items-center text-center bg-[#fdfdfd]">
+              <div className="mb-12 max-w-md">
+                <div className="w-24 h-24 bg-indigo-600 rounded-[35%] flex items-center justify-center text-white mb-8 mx-auto shadow-2xl shadow-indigo-200 rotate-3 hover:rotate-0 transition-transform duration-500">
+                  <Scan size={40} strokeWidth={2.5} />
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {status === 'success' ? (
-                    <div className="animate-bounce"><CheckCircle2 size={48} className="text-emerald-500 mx-auto" /></div>
+                <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight leading-tight">Identify Agricultural Unit</h2>
+                <p className="text-gray-400 text-sm md:text-base mt-4 font-medium leading-relaxed">
+                  Position the plant's unique QR code within the frame to access real-time growth records and field analytics.
+                </p>
+              </div>
+
+              <div className="w-full max-w-md space-y-8">
+                <div className="relative aspect-square bg-black rounded-[40px] overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.3)] border-[12px] border-white ring-1 ring-gray-100">
+                  <div className="absolute inset-0 z-10 pointer-events-none border-[30px] border-black/10"></div>
+                  {scannerActive ? (
+                    <Scanner onResult={handleScan} isActive={scannerActive} />
                   ) : (
-                    <div className="p-6 bg-white rounded-full shadow-sm border border-stone-100 inline-block">
-                      <Scan size={42} className="text-stone-300" />
+                    <div 
+                      onClick={() => setScannerActive(true)}
+                      className="absolute inset-0 flex flex-col items-center justify-center p-12 text-white/50 cursor-pointer hover:bg-white/5 transition-colors group"
+                    >
+                      <Camera size={64} className="mb-6 opacity-30 group-hover:scale-110 transition-transform duration-500" />
+                      <p className="text-[11px] font-black uppercase tracking-[0.3em] text-white/40">Tap to engage camera</p>
                     </div>
                   )}
-                  <div>
-                    <p className="text-stone-900 text-sm font-bold">Lensa Pemantau</p>
-                    <p className="text-stone-400 text-[10px] md:text-xs">Scan QR untuk membuka data batch</p>
-                  </div>
+                  {scannerActive && (
+                    <div className="absolute inset-x-0 top-0 z-20 pointer-events-none">
+                      <div className="w-full h-1 bg-emerald-400 shadow-[0_0_30px_rgba(52,211,153,1)] animate-scan-laser"></div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
 
-        {/* RIGHT PANEL: Growth Report Form */}
-        <div className="flex-1 p-6 md:p-8 lg:p-12 bg-white flex flex-col relative">
-          {!scannedId && (
-            <div className="absolute inset-0 z-40 bg-white/60 backdrop-blur-[4px] flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
-              <div className="w-16 h-16 bg-stone-100 rounded-full flex items-center justify-center mb-4 text-stone-400 border border-stone-200 shadow-inner">
-                <ShieldCheck size={32} className="animate-pulse" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <button
+                    onClick={() => setScannerActive(!scannerActive)}
+                    className={cn(
+                      "flex items-center justify-center gap-3 py-4.5 rounded-[22px] font-black text-xs uppercase tracking-widest transition-all shadow-xl active:scale-95",
+                      scannerActive ? "bg-red-50 text-red-600 border border-red-100" : "bg-stone-900 text-white hover:bg-black"
+                    )}
+                  >
+                    <Camera size={18} />
+                    {scannerActive ? "Stop Camera" : "Launch Camera"}
+                  </button>
+                  <label className="flex items-center justify-center gap-3 py-4.5 bg-white border-2 border-dashed border-gray-200 text-gray-400 rounded-[22px] font-black text-xs uppercase tracking-widest hover:border-indigo-400 hover:text-indigo-600 transition-all cursor-pointer active:scale-95">
+                    <ImageIcon size={18} />
+                    Import QR
+                    <input type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+                  </label>
+                </div>
               </div>
-              <h3 className="text-lg font-bold text-stone-900 mb-1">Akses Terkunci</h3>
-              <p className="text-stone-500 text-xs md:text-sm max-w-[260px]">
-                Silakan pindai kode QR atau unggah file QR batch tanaman untuk membuka formulir pelaporan.
-              </p>
+            </div>
+          ) : (
+            /* STEP 2: PROFESSIONAL GROWTH REPORT */
+            <div className="flex flex-col lg:flex-row min-h-[800px] animate-in slide-in-from-right duration-700">
+              
+              {/* ASSET IDENTITY STRIP (Premium Identity Card Style) */}
+              <div className="w-full lg:w-[440px] p-10 md:p-14 bg-[#FAFAFA] border-b lg:border-b-0 lg:border-r border-gray-100 flex flex-col">
+                <div className="mb-12">
+                   <h2 className="text-3xl font-black text-gray-900 tracking-tighter leading-none italic mb-2 uppercase">Batch Info</h2>
+                   <p className="text-gray-400 text-[11px] font-bold uppercase tracking-widest">Metadata verified from core database</p>
+                </div>
+
+                <div className="flex-1 space-y-8">
+                   {/* Virtual Identity Card */}
+                   <div className="p-8 bg-gradient-to-br from-indigo-700 via-indigo-600 to-indigo-900 rounded-[40px] text-white shadow-2xl relative overflow-hidden group">
+                      <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+                      <div className="relative z-10">
+                        <div className="flex justify-between items-start mb-10">
+                           <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
+                              <ShieldCheck size={20} />
+                           </div>
+                           <span className="text-[10px] font-black bg-emerald-400 text-emerald-900 px-2 py-0.5 rounded uppercase tracking-widest">Live System</span>
+                        </div>
+                        <p className="text-[10px] font-black text-indigo-200 uppercase tracking-[0.2em] mb-1">Batch Identifier</p>
+                        <h3 className="text-3xl font-black italic tracking-tighter mb-8">{scannedId}</h3>
+                        
+                        <div className="grid grid-cols-2 gap-6 pt-6 border-t border-white/10">
+                           <div>
+                              <p className="text-[9px] font-black text-indigo-300 uppercase tracking-widest mb-1">Variation</p>
+                              <p className="text-sm font-bold truncate">{assetName || 'Pending Sync'}</p>
+                           </div>
+                           <div>
+                              <p className="text-[9px] font-black text-indigo-300 uppercase tracking-widest mb-1">Category</p>
+                              <p className="text-sm font-bold">{scannedCategory || 'Agricultural'}</p>
+                           </div>
+                        </div>
+                      </div>
+                      <Scan size={140} className="absolute -bottom-10 -right-10 opacity-5 -rotate-12 transition-transform duration-700 group-hover:rotate-0" />
+                   </div>
+
+                   {/* Geotag Card */}
+                   <div className="p-8 bg-white border border-gray-100 rounded-[35px] shadow-sm space-y-6">
+                      <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-2">
+                           <MapPin size={16} className="text-indigo-600" />
+                           <span className="text-[11px] font-black text-gray-900 uppercase tracking-widest">Deployment Zone</span>
+                         </div>
+                         <div className={cn("w-2 h-2 rounded-full", coords ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-red-400")}></div>
+                      </div>
+                      <div className="space-y-4">
+                        <p className="text-[13px] font-bold text-gray-700 leading-relaxed italic">
+                           "{manualAddress || 'Geographic triangulation in progress via satellite uplink'}"
+                        </p>
+                        {coords && (
+                          <div className="flex gap-4 p-3 bg-gray-50 rounded-2xl font-mono text-[10px] font-black text-indigo-600 border border-gray-100/50">
+                             <span>LAT: {coords.lat.toFixed(6)}</span>
+                             <span>LNG: {coords.lng.toFixed(6)}</span>
+                          </div>
+                        )}
+                      </div>
+                   </div>
+                </div>
+
+                <div className="pt-10 border-t border-gray-100 mt-10">
+                   <button 
+                     onClick={handleReset}
+                     className="w-full flex items-center justify-center gap-3 py-4 bg-white border border-gray-200 text-stone-400 hover:text-red-500 hover:border-red-100 hover:bg-red-50 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all group"
+                   >
+                     <RotateCcw size={16} className="group-hover:rotate-[-120deg] transition-transform duration-500" />
+                     Cancel & Scan Ulang
+                   </button>
+                </div>
+              </div>
+
+              {/* REPORTING ENGINE (Form Side) */}
+              <div className="flex-1 p-10 md:p-14 lg:p-20 bg-white space-y-12 overflow-y-auto custom-scrollbar">
+                 <div className="flex items-end justify-between border-b border-gray-50 pb-8">
+                    <div>
+                       <h2 className="text-4xl font-black text-gray-900 tracking-tighter italic uppercase leading-none">Field Report</h2>
+                       <p className="text-gray-400 text-xs font-bold mt-3 uppercase tracking-widest">Growth metrics & health synchronization</p>
+                    </div>
+                    <CheckCircle2 size={32} className="text-gray-100" />
+                 </div>
+
+                 <section className="space-y-12">
+                    {/* Health Status Selector */}
+                    <div className="space-y-5">
+                      <label className="text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">Current Health Status</label>
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        {[
+                          { key: 'sehat_luar_biasa', label: 'Prima', icon: <Sparkles size={22} className="text-emerald-400" /> },
+                          { key: 'sehat', label: 'Sehat', icon: <Leaf size={22} className="text-indigo-400" /> },
+                          { key: 'kurang_sehat', label: 'Layu', icon: <AlertTriangle size={22} className="text-amber-400" /> },
+                          { key: 'kritis', label: 'Kritis', icon: <Zap size={22} className="text-red-400" /> }
+                        ].map(s => (
+                          <button
+                            key={s.key}
+                            onClick={() => setDeployStatus(s.key)}
+                            className={cn(
+                              "relative py-5 px-2 rounded-3xl text-[11px] font-black uppercase tracking-tight transition-all border-2 flex flex-col items-center gap-3",
+                              deployStatus === s.key ? "bg-stone-900 border-stone-900 text-white shadow-2xl scale-[1.02]" : "bg-white border-gray-100 text-gray-400 hover:border-stone-200"
+                            )}
+                          >
+                            <div className={cn(
+                              "w-10 h-10 rounded-2xl flex items-center justify-center transition-colors",
+                              deployStatus === s.key ? "bg-white/10" : "bg-gray-50"
+                            )}>
+                               {s.icon}
+                            </div>
+                            {s.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Numeric Inputs */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+                       {[
+                         { label: 'Growth Height (cm)', val: tinggiTanaman, setter: setTinggiTanaman },
+                         { label: 'Leaf Count (qty)', val: jumlahDaun, setter: setJumlahDaun },
+                         { label: 'Max Width (cm)', val: lebarDaun, setter: setLebarDaun }
+                       ].map((item, i) => (
+                         <div key={i} className="space-y-3">
+                            <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">{item.label}</label>
+                            <div className="relative group">
+                              <input
+                                type="number"
+                                value={item.val}
+                                onChange={e => item.setter(e.target.value)}
+                                placeholder="00.0"
+                                className="w-full bg-stone-50 border-2 border-stone-50 rounded-2xl px-6 py-4.5 text-base font-black text-stone-900 focus:bg-white focus:border-indigo-500 focus:shadow-xl transition-all outline-none"
+                              />
+                              <div className="absolute right-4 top-1/2 -translate-y-1/2 w-1 h-6 bg-stone-200 rounded-full group-focus-within:bg-indigo-500 transition-colors"></div>
+                            </div>
+                         </div>
+                       ))}
+                    </div>
+
+                    {/* Evidence Capture */}
+                    <div className="space-y-5">
+                       <label className="text-[11px] font-black text-gray-900 uppercase tracking-widest ml-1 flex items-center gap-2">
+                          Visual Evidence <span className="px-2 py-0.5 bg-red-500 text-white text-[9px] rounded-lg uppercase tracking-widest">Mandatory</span>
+                       </label>
+                       <div 
+                         onClick={() => fileInputRef.current?.click()}
+                         className={cn(
+                           "w-full aspect-[21/9] border-2 border-dashed rounded-[40px] flex flex-col items-center justify-center cursor-pointer transition-all duration-500 overflow-hidden relative group",
+                           photoPreview ? "border-emerald-500 shadow-2xl shadow-emerald-50" : "border-stone-200 hover:border-indigo-400 hover:bg-indigo-50/20"
+                         )}
+                       >
+                          {photoPreview ? (
+                            <>
+                              <img src={photoPreview} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                              <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPhotoPreview(null);
+                                  setPhotoFile(null);
+                                }}
+                                className="absolute top-6 right-6 p-2 bg-white/90 backdrop-blur-md text-red-500 rounded-full shadow-lg hover:bg-white transition-all scale-75 group-hover:scale-100"
+                              >
+                                <RotateCcw size={20} />
+                              </button>
+                              <div className="absolute bottom-6 left-6 px-4 py-2 bg-white/90 backdrop-blur-md text-stone-900 text-[10px] font-black rounded-xl border border-white uppercase shadow-lg">Evidence Captured</div>
+                            </>
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-stone-50/50">
+                               <div className="flex gap-6">
+                                  {/* Camera Action */}
+                                  <div 
+                                    onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }}
+                                    className="flex flex-col items-center gap-3 group/btn"
+                                  >
+                                     <div className="w-20 h-20 bg-white shadow-xl rounded-3xl flex items-center justify-center border border-stone-100 group-hover/btn:border-indigo-500 group-hover/btn:scale-110 transition-all duration-300">
+                                        <Camera size={32} className="text-stone-300 group-hover/btn:text-indigo-600 transition-colors" />
+                                     </div>
+                                     <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 group-hover/btn:text-indigo-600 transition-colors">Take Photo</span>
+                                  </div>
+
+                                  {/* Gallery Action */}
+                                  <div 
+                                    onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                                    className="flex flex-col items-center gap-3 group/btn"
+                                  >
+                                     <div className="w-20 h-20 bg-white shadow-xl rounded-3xl flex items-center justify-center border border-stone-100 group-hover/btn:border-emerald-500 group-hover/btn:scale-110 transition-all duration-300">
+                                        <ImageIcon size={32} className="text-stone-300 group-hover/btn:text-emerald-500 transition-colors" />
+                                     </div>
+                                     <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 group-hover/btn:text-emerald-600 transition-colors">From Gallery</span>
+                                  </div>
+                               </div>
+                               <p className="mt-8 text-[9px] font-bold text-gray-300 uppercase tracking-[0.3em]">Select acquisition method</p>
+                            </div>
+                          )}
+                       </div>
+                       {/* Hidden Inputs */}
+                       <input type="file" ref={cameraInputRef} accept="image/*" capture="environment" onChange={handlePhotoCapture} className="hidden" />
+                       <input type="file" ref={fileInputRef} accept="image/*" onChange={handlePhotoCapture} className="hidden" />
+                    </div>
+
+                    {/* Observations */}
+                    <div className="space-y-4">
+                       <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Agronomic Observations</label>
+                       <textarea
+                         value={notes}
+                         onChange={e => setNotes(e.target.value)}
+                         placeholder="Describe any anomalies, pests, or rapid growth signals..."
+                         className="w-full bg-stone-50 border-2 border-transparent rounded-[35px] px-8 py-8 text-sm font-bold text-stone-700 focus:bg-white focus:border-indigo-500 focus:shadow-2xl transition-all outline-none h-40 resize-none"
+                       />
+                    </div>
+
+                    <div className="pt-6">
+                       <button
+                         onClick={handleCommit}
+                         disabled={loading || !photoFile}
+                         className="w-full py-7 bg-[#EE7D40] text-white rounded-[35px] font-black text-sm shadow-[0_25px_60px_-15px_rgba(238,125,64,0.4)] hover:bg-[#d96c32] hover:shadow-[0_30px_70px_-15px_rgba(238,125,64,0.5)] transition-all active:scale-95 disabled:opacity-30 disabled:grayscale flex items-center justify-center gap-4 uppercase tracking-[0.3em]"
+                       >
+                          {loading ? <Loader2 className="animate-spin" /> : <>Submit Final Report <CheckCircle2 size={24} /></>}
+                       </button>
+                       <p className="text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-8">
+                          Authorized Field Report • Data Integrity Protected
+                       </p>
+                    </div>
+                 </section>
+              </div>
             </div>
           )}
-
-          <div className={cn(
-            "flex flex-col h-full transition-all duration-700",
-            !scannedId ? "opacity-10 grayscale pointer-events-none blur-[1px]" : "opacity-100"
-          )}>
-            <div className="mb-6 md:mb-8">
-              <h2 className="text-lg md:text-xl font-bold text-gray-900 leading-tight">Laporan Pertumbuhan</h2>
-              <p className="text-gray-500 text-xs md:text-sm mt-1">Perbarui metrik agronomis untuk memantau siklus hidup tanaman.</p>
-            </div>
-
-            <div className="space-y-5 md:space-y-6 flex-1">
-              <div className="space-y-3 md:space-y-4">
-                <label className="text-xs font-semibold text-gray-700 ml-1">Kondisi Umum Tanaman</label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {[
-                    { key: 'sehat_luar_biasa', label: 'Sangat Sehat', color: 'emerald' },
-                    { key: 'sehat', label: 'Sehat', color: 'indigo' },
-                    { key: 'kurang_sehat', label: 'Layu/Kuning', color: 'amber' },
-                    { key: 'kritis', label: 'Kritis', color: 'red' }
-                  ].map(s => (
-                    <button
-                      key={s.key}
-                      onClick={() => setDeployStatus(s.key)}
-                      className={`py-3 px-1 rounded-xl text-[9px] md:text-[10px] font-bold uppercase tracking-tight transition-all border ${deployStatus === s.key
-                        ? `bg-stone-900 border-stone-900 text-white shadow-lg`
-                        : 'bg-white border-gray-200 text-gray-400 hover:bg-gray-50'
-                        }`}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 md:gap-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-gray-700 ml-1">Tinggi (cm)</label>
-                  <input
-                    type="number"
-                    value={tinggiTanaman}
-                    onChange={e => setTinggiTanaman(e.target.value)}
-                    placeholder="0"
-                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-mono"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-gray-700 ml-1">Daun (qty)</label>
-                  <input
-                    type="number"
-                    value={jumlahDaun}
-                    onChange={e => setJumlahDaun(e.target.value)}
-                    placeholder="0"
-                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-mono"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-gray-700 ml-1">Lebar (cm)</label>
-                  <input
-                    type="number"
-                    value={lebarDaun}
-                    onChange={e => setLebarDaun(e.target.value)}
-                    placeholder="0"
-                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-mono"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100 space-y-3">
-                  <label className="text-[11px] font-bold text-gray-800 uppercase tracking-wider block">Penyiraman</label>
-                  <div className="flex gap-2">
-                    {['sudah', 'tidak'].map(v => (
-                      <button
-                        key={v}
-                        onClick={() => setPenyiraman(v)}
-                        className={cn(
-                          "flex-1 py-2 rounded-lg text-xs font-bold capitalize transition-all",
-                          penyiraman === v ? "bg-white border-2 border-indigo-600 text-indigo-700 shadow-sm" : "bg-gray-100/50 text-gray-400 border-2 border-transparent"
-                        )}
-                      >
-                        {v === 'tidak' ? 'Belum' : 'Sudah'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100 space-y-3">
-                  <label className="text-[11px] font-bold text-gray-800 uppercase tracking-wider block">Pencahayaan</label>
-                  <select
-                    value={pencahayaan}
-                    onChange={e => setPencahayaan(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-indigo-500"
-                  >
-                    <option value="teduh">Teduh</option>
-                    <option value="terang_tidak_langsung">Terang Tidak Langsung</option>
-                    <option value="matahari_langsung">Matahari Langsung</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-xs font-semibold text-gray-700 ml-1">Pemberian Nutrisi/Pupuk</label>
-                <div className="flex gap-3 items-center">
-                  <div className="flex bg-gray-100 p-1 rounded-xl shrink-0">
-                    {['ya', 'tidak'].map(v => (
-                      <button
-                        key={v}
-                        onClick={() => setPemberianPupuk(v)}
-                        className={cn(
-                          "px-4 py-1.5 rounded-lg text-xs font-bold transition-all",
-                          pemberianPupuk === v ? "bg-white text-emerald-700 shadow-sm" : "text-gray-400"
-                        )}
-                      >
-                        {v.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                  {pemberianPupuk === 'ya' && (
-                    <input
-                      type="text"
-                      value={jenisPupuk}
-                      onChange={e => setJenisPupuk(e.target.value)}
-                      placeholder="Sebutkan jenis pupuk/nutrisi..."
-                      className="flex-1 bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-xs md:text-sm focus:outline-none focus:border-emerald-500"
-                    />
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2 relative group">
-                <label className="text-xs font-semibold text-gray-700 ml-1">Foto Dokumentasi Lapangan *</label>
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`w-full border-2 border-dashed rounded-xl md:rounded-2xl p-4 md:p-6 cursor-pointer flex flex-col items-center justify-center gap-2 transition-all ${photoPreview ? 'border-emerald-500 bg-emerald-50/20' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-                    }`}
-                >
-                  {photoPreview ? (
-                    <div className="flex items-center gap-3 w-full">
-                      <img src={photoPreview} className="h-10 w-10 md:h-12 md:w-12 rounded-lg object-cover" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10px] md:text-xs font-bold text-gray-900 truncate">Foto Terlampir</p>
-                        <p className="text-[9px] md:text-[10px] text-gray-500 uppercase tracking-tighter">Sinyal GPS: {coords ? 'Ok' : 'Wait..'}</p>
-                      </div>
-                      <span className="px-2 py-0.5 md:py-1 bg-emerald-100 text-emerald-700 text-[8px] md:text-[10px] font-bold rounded-md">SIAP KIRIM</span>
-                    </div>
-                  ) : (
-                    <>
-                      <Camera size={20} className="text-gray-300 md:w-6 md:h-6" />
-                      <p className="text-[10px] md:text-xs text-gray-400 font-medium text-center">Klik untuk ambil foto terbaru</p>
-                    </>
-                  )}
-                </div>
-                <input type="file" ref={fileInputRef} accept="image/*" capture="environment" onChange={handlePhotoCapture} className="hidden" />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-gray-700 ml-1">Observasi Tambahan (Optional)</label>
-                <textarea
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                  placeholder="Hama, tunas baru, bintik putih, dll..."
-                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all h-20 md:h-24 resize-none"
-                />
-              </div>
-
-              <button
-                onClick={handleCommit}
-                disabled={!scannedId || !photoFile || loading}
-                className="w-full py-4 bg-stone-900 text-white rounded-xl font-bold text-xs md:text-sm shadow-xl shadow-stone-200 hover:bg-black transition-all disabled:opacity-30 disabled:shadow-none flex items-center justify-center gap-2 md:gap-3"
-              >
-                {loading ? <Loader2 className="animate-spin" size={16} /> : 'Submit Laporan'}
-              </button>
-            </div>
-
-            {/* Bottom Progress/Status Area */}
-            <div className="mt-8 md:mt-12 pt-6 md:pt-8 border-t border-gray-100">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] md:text-[11px] font-bold text-gray-900 leading-none">{coords ? 'GPS Terkunci Secara Presisi' : 'GPS Menunggu Sinyal...'}</span>
-                <span className="text-[10px] md:text-[11px] font-bold text-indigo-600 hover:underline cursor-pointer leading-none" onClick={requestLocation}>Refresh GPS</span>
-              </div>
-              <div className="w-full h-1 md:h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div className={`h-full bg-indigo-600 transition-all duration-1000 ${coords ? 'w-full' : 'w-1/3 animate-pulse'}`}></div>
-              </div>
-              <p className="text-[9px] md:text-[10px] text-gray-400 mt-2">
-                {coords ? `Lokasi Aman: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}` : 'Visi satelit sedang dalam sinkronisasi lokasi.'}
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </div>
   );
 };
+

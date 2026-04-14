@@ -1,11 +1,12 @@
 import { useState, useCallback } from 'react';
 import { supabase, ensureBucketExists } from '../lib/supabase';
+import { compressImage } from '../lib/imageProcessor';
 
 // Tipe data lengkap untuk registrasi aset
 export interface AssetData {
   barcode_id: string;
-  lat: number;
-  lng: number;
+  lat?: number;
+  lng?: number;
   photo_file: File;
   asset_name?: string;
   category?: string;
@@ -31,13 +32,15 @@ export const useAttendance = () => {
       // 1. Pastikan bucket storage 'photos' sudah ada
       await ensureBucketExists();
 
-      // 2. Upload Foto ke Supabase Storage
+      // 2. Kompres Foto (Penting untuk mempercepat upload di koneksi seluler)
+      const compressedFile = await compressImage(data.photo_file, 1200, 0.6);
+      
       const ext = data.photo_file.name.split('.').pop() || 'jpg';
       const fileName = `assets/${data.barcode_id}-${Date.now()}.${ext}`;
       
       const { error: uploadError } = await supabase.storage
         .from('photos')
-        .upload(fileName, data.photo_file, {
+        .upload(fileName, compressedFile, {
           cacheControl: '3600',
           upsert: false
         });
@@ -136,5 +139,21 @@ export const useAttendance = () => {
     }
   };
 
-  return { saveAsset, fetchCheckIns, updateAsset, deleteAsset, loading, error };
+  const getAssetByBarcode = async (barcodeId: string) => {
+    const { data, error } = await supabase
+      .from('check_ins')
+      .select('*')
+      .eq('barcode_id', barcodeId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) {
+      console.warn('Asset not found or error:', error.message);
+      return null;
+    }
+    return data;
+  };
+
+  return { saveAsset, fetchCheckIns, updateAsset, deleteAsset, getAssetByBarcode, loading, error };
 };

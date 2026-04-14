@@ -1,11 +1,11 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAttendance, type AssetData } from '../hooks/useAttendance';
 import {
-  QrCode, MapPin, Camera, Upload, Download, Loader2,
-  CheckCircle2, Navigation, Tag,
-  Building2, ShieldCheck, Printer, RotateCcw, ChevronRight,
+  MapPin, Camera, Upload, Download, Loader2,
+  CheckCircle2, RotateCcw, ChevronRight,
+  ChevronDown,
 } from 'lucide-react';
 
 // Tipe data untuk form monitoring tanaman
@@ -14,12 +14,12 @@ interface PlantForm {
   plantName: string;
   commodity: string;
   description: string;
-  lat: number | null;
-  lng: number | null;
   location: string;
   growthStatus: string;
   fieldManager: string;
   agronomicNotes: string;
+  plantingDate: string;
+  plantPopulation: string;
 }
 
 const initialForm: PlantForm = {
@@ -27,17 +27,17 @@ const initialForm: PlantForm = {
   plantName: '',
   commodity: '',
   description: '',
-  lat: null,
-  lng: null,
   location: '',
   growthStatus: 'pesemaian',
   fieldManager: '',
   agronomicNotes: '',
+  plantingDate: new Date().toISOString().split('T')[0],
+  plantPopulation: '',
 };
 
 const commodities = ['Tanaman Pangan', 'Hortikultura', 'Perkebunan', 'Tanaman Hias', 'Tanaman Obat', 'Sarana Produksi (Saprodi)', 'Alat & Mesin (Alsintan)'];
 
-import { Leaf, Sprout, Trees, Ship, CloudUpload, Calendar, UserCheck, Search, Map as MapIcon } from 'lucide-react';
+import { Leaf, Sprout, Map as MapIcon } from 'lucide-react';
 
 export const GenerateQRPage = () => {
   const navigate = useNavigate();
@@ -45,8 +45,9 @@ export const GenerateQRPage = () => {
   const [form, setForm] = useState<PlantForm>(initialForm);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [gpsLoading, setGpsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [locLoading, setLocLoading] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
 
   // Auto-generate Batch ID
@@ -57,20 +58,27 @@ export const GenerateQRPage = () => {
   };
 
   const updateField = (field: keyof PlantForm, value: any) => setForm(f => ({ ...f, [field]: value }));
-
-  const requestLocation = useCallback(() => {
-    if (!navigator.geolocation) return alert('GPS tidak didukung');
-    setGpsLoading(true);
+  
+  // Ambil lokasi saat ini
+  const refreshLocation = useCallback(() => {
+    setLocLoading(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        updateField('lat', pos.coords.latitude);
-        updateField('lng', pos.coords.longitude);
-        setGpsLoading(false);
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLocLoading(false);
       },
-      () => { alert('Gagal akses GPS'); setGpsLoading(false); },
-      { enableHighAccuracy: true, timeout: 10000 }
+      (err) => {
+        console.error('Location error:', err);
+        setLocLoading(false);
+      },
+      { enableHighAccuracy: true }
     );
   }, []);
+
+  useEffect(() => {
+    refreshLocation();
+  }, [refreshLocation]);
+
 
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -101,13 +109,15 @@ export const GenerateQRPage = () => {
   };
 
   const handleSubmit = async () => {
-    if (!form.batchId || !form.plantName || !form.lat || !photoFile) return alert('Lengkapi data wajib!');
+    if (!form.batchId || !form.plantName || !photoFile) {
+      return alert('Foto Tanaman Wajib Diunggah! Silakan ambil foto sebagai bukti registrasi batch baru.');
+    }
 
     const assetData: AssetData = {
       barcode_id: form.batchId,
-      lat: form.lat!,
-      lng: form.lng!,
       photo_file: photoFile,
+      lat: coords?.lat || 0,
+      lng: coords?.lng || 0,
       asset_name: form.plantName,
       category: form.commodity,
       condition: form.growthStatus,
@@ -119,276 +129,339 @@ export const GenerateQRPage = () => {
     const result = await saveAsset(assetData);
     if (result.success) {
       setSuccess(true);
-      setTimeout(() => navigate('/assets'), 2000);
+      // Remove auto-navigate, stay to let user see/print QR
+      // setTimeout(() => navigate('/assets'), 2000);
     }
   };
 
-  const qrPayload = form.batchId ? JSON.stringify({ id: form.batchId, name: form.plantName, commodity: form.commodity }) : '';
-  const isComplete = form.batchId && form.plantName && form.lat && photoFile;
+  const qrPayload = form.batchId || '';
 
-  return (
-    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+  const isComplete = form.batchId && form.plantName && photoFile;
 
-      {/* Header Breadcrumb */}
-      <div className="flex items-center gap-2 text-[11px] md:text-sm text-stone-400 mb-2 ml-1">
-        <span onClick={() => navigate('/assets')} className="cursor-pointer hover:text-teal font-medium transition-colors uppercase tracking-wider">Monitoring</span>
-        <ChevronRight size={12} className="opacity-50" />
-        <span className="text-stone-900 font-bold uppercase tracking-wider">Pendaftaran Batch Tanaman</span>
-      </div>
-
-      {/* Main Form Card */}
-      <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
-        {/* Form Header */}
-        <div className="p-6 md:p-10 pb-4 md:pb-6 flex items-start gap-4 md:gap-5">
-          <div className="h-10 w-10 md:h-14 md:w-14 shrink-0 rounded-xl md:rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-            <Sprout size={22} className="md:w-7 md:h-7" />
+  if (success) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-12 text-center animate-in fade-in zoom-in-95 duration-500">
+        <div className="bg-white rounded-[40px] border border-stone-200 shadow-2xl overflow-hidden">
+          <div className="bg-emerald-600 p-8 md:p-12 text-white flex flex-col items-center">
+            <div className="h-20 w-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mb-6">
+              <CheckCircle2 size={40} className="text-white" />
+            </div>
+            <h1 className="text-2xl md:text-3xl font-bold">Batch Berhasil Terdaftar!</h1>
+            <p className="text-emerald-100 mt-2 text-sm md:text-base max-w-md">
+              QR Code di bawah ini sudah aktif dan siap digunakan sebagai label identitas tanaman di lapangan.
+            </p>
           </div>
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold text-[#111827]">Registrasi Lahan & Tanaman</h1>
-            <p className="text-gray-400 text-xs md:text-sm mt-0.5 leading-tight">Pantau perkembangan agrikultur dengan geotagging dan QR batch</p>
-          </div>
-        </div>
 
-        <div className="px-6 md:px-10 py-4">
-          {success && (
-            <div className="mb-6 md:mb-8 p-3 md:p-4 bg-emerald-50 border border-emerald-100 rounded-xl md:rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
-              <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
-              <p className="text-xs md:text-sm font-semibold text-emerald-800">Data batch berhasil disimpan!</p>
+          <div className="p-8 md:p-12 flex flex-col items-center">
+            <div ref={qrRef} className="bg-white p-6 rounded-3xl shadow-xl border-4 border-emerald-50 mb-8 transform hover:scale-105 transition-transform duration-300">
+              <QRCodeSVG value={qrPayload} size={220} level="H" includeMargin />
             </div>
-          )}
 
-          <div className="space-y-6 md:space-y-8">
-            {/* Row 1: Batch ID & Commodity */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-              <div className="space-y-2">
-                <label className="text-xs md:text-sm font-bold text-[#111827] ml-0.5">Batch ID / Kode Lot *</label>
-                <div className="relative group">
-                  <input
-                    type="text"
-                    value={form.batchId}
-                    onChange={e => updateField('batchId', e.target.value)}
-                    placeholder="Contoh: PADI-2024-A1"
-                    className="w-full bg-[#FAFAFA] border border-gray-100 rounded-xl md:rounded-2xl px-4 md:px-5 py-3.5 md:py-4 text-xs md:text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:bg-white focus:border-emerald-500 transition-all"
-                  />
-                  <button
-                    onClick={generateId}
-                    className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2 px-2 md:px-3 py-1 md:py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] md:text-[10px] font-bold hover:bg-emerald-100 transition-colors"
-                  >
-                    AUTO
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs md:text-sm font-bold text-[#111827] ml-0.5">Kategori Komoditas</label>
-                <div className="relative group">
-                  <select
-                    value={form.commodity}
-                    onChange={e => updateField('commodity', e.target.value)}
-                    className="w-full bg-[#FAFAFA] border border-gray-100 rounded-xl md:rounded-2xl px-4 md:px-5 py-3.5 md:py-4 text-xs md:text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:bg-white focus:border-emerald-500 transition-all appearance-none"
-                  >
-                    <option value="">Pilih Komoditas</option>
-                    {commodities.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                  <div className="absolute right-4 md:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                    <ChevronRight size={14} className="rotate-90 md:w-4 md:h-4" />
-                  </div>
-                </div>
+            <div className="space-y-2 mb-10">
+              <h2 className="text-2xl font-black text-stone-900 tracking-tight">{form.batchId}</h2>
+              <div className="flex items-center justify-center gap-2">
+                <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold uppercase tracking-widest">
+                  {form.commodity || 'Tanaman'}
+                </span>
+                <span className="text-stone-400">•</span>
+                <span className="text-stone-600 font-medium">{form.plantName}</span>
               </div>
             </div>
 
-            {/* Row 2: Plant Name & Manager */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-              <div className="space-y-2">
-                <label className="text-xs md:text-sm font-bold text-[#111827] ml-0.5">Varietas / Nama Tanaman *</label>
-                <input
-                  type="text"
-                  value={form.plantName}
-                  onChange={e => updateField('plantName', e.target.value)}
-                  placeholder="Padi IR64 / Jagung Hybrid"
-                  className="w-full bg-[#FAFAFA] border border-gray-100 rounded-xl md:rounded-2xl px-4 md:px-5 py-3.5 md:py-4 text-xs md:text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:bg-white focus:border-emerald-500 transition-all"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs md:text-sm font-bold text-[#111827] ml-0.5">Penanggung Jawab</label>
-                <input
-                  type="text"
-                  value={form.fieldManager}
-                  onChange={e => updateField('fieldManager', e.target.value)}
-                  placeholder="Nama petani / pengelola"
-                  className="w-full bg-[#FAFAFA] border border-gray-100 rounded-xl md:rounded-2xl px-4 md:px-5 py-3.5 md:py-4 text-xs md:text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:bg-white focus:border-emerald-500 transition-all"
-                />
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-md">
+              <button
+                onClick={downloadQR}
+                className="flex items-center justify-center gap-3 px-8 py-4 bg-stone-900 text-white rounded-2xl font-bold text-sm hover:bg-black transition-all shadow-lg active:scale-95"
+              >
+                <Download size={18} /> Cetak Label QR
+              </button>
+              <button
+                onClick={() => navigate('/assets')}
+                className="flex items-center justify-center gap-3 px-8 py-4 bg-emerald-50 text-emerald-700 rounded-2xl font-bold text-sm hover:bg-emerald-100 transition-all active:scale-95"
+              >
+                Ke Inventori <ChevronRight size={18} />
+              </button>
             </div>
 
-            {/* Row 3: GPS Geotagging (Restored) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-              <div className="space-y-2">
-                <label className="text-xs md:text-sm font-bold text-[#111827] ml-0.5">Lintang (Lat) *</label>
-                <div className="relative">
-                  <input
-                    readOnly
-                    type="text"
-                    value={form.lat || ''}
-                    placeholder="Koordinat lat..."
-                    className="w-full bg-[#FAFAFA] border border-gray-100 rounded-xl md:rounded-2xl px-10 py-3.5 md:py-4 text-xs md:text-sm font-mono text-gray-600 focus:outline-none"
-                  />
-                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-300 pointer-events-none" size={16} />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs md:text-sm font-bold text-[#111827] ml-0.5">Bujur (Lng) *</label>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="relative flex-1">
-                    <input
-                      readOnly
-                      type="text"
-                      value={form.lng || ''}
-                      placeholder="Koordinat lng..."
-                      className="w-full bg-[#FAFAFA] border border-gray-100 rounded-xl md:rounded-2xl px-10 py-3.5 md:py-4 text-xs md:text-sm font-mono text-gray-600 focus:outline-none"
-                    />
-                    <Navigation className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-300 pointer-events-none" size={16} />
-                  </div>
-                  <button
-                    onClick={requestLocation}
-                    disabled={gpsLoading}
-                    className="py-3 px-6 rounded-xl md:rounded-2xl bg-emerald-600 text-white font-bold text-xs md:text-sm shadow-md hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center shrink-0"
-                  >
-                    {gpsLoading ? <Loader2 size={16} className="animate-spin" /> : 'AMBIL LOKASI'}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Row 4: Farm Location */}
-            <div className="space-y-2">
-              <label className="text-xs md:text-sm font-bold text-[#111827] ml-0.5">Alamat Lahan / Nama Plot</label>
-              <div className="relative group">
-                <input
-                  type="text"
-                  value={form.location}
-                  onChange={e => updateField('location', e.target.value)}
-                  placeholder="Contoh: Desa Makmur, Blok B, Sawah Kidul"
-                  className="w-full bg-[#FAFAFA] border border-gray-100 rounded-xl md:rounded-2xl px-4 md:px-5 py-3.5 md:py-4 text-xs md:text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:bg-white focus:border-emerald-500 transition-all"
-                />
-                <Trees className="absolute right-4 md:right-5 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" size={16} />
-              </div>
-            </div>
-
-            {/* Row 5: Growth Phase */}
-            <div className="space-y-2">
-              <label className="text-xs md:text-sm font-bold text-[#111827] ml-0.5">Fase Pertumbuhan</label>
-              <div className="relative group">
-                <select
-                  value={form.growthStatus}
-                  onChange={e => updateField('growthStatus', e.target.value)}
-                  className="w-full bg-[#FAFAFA] border border-gray-100 rounded-xl md:rounded-2xl px-4 md:px-5 py-3.5 md:py-4 text-xs md:text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:bg-white focus:border-emerald-500 transition-all appearance-none"
-                >
-                  <option value="pesemaian">Pesemaian (Seedling)</option>
-                  <option value="vegetatif">Vegetatif (Growth)</option>
-                  <option value="generatif">Generatif (Flowering)</option>
-                  <option value="panen">Masa Panen (Harvest)</option>
-                  <option value="pasca_panen">Pasca Panen</option>
-                </select>
-                <div className="absolute right-4 md:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                  <ChevronRight size={14} className="rotate-90 md:w-4 md:h-4" />
-                </div>
-              </div>
-            </div>
-
-            {/* Upload Section */}
-            <div className="space-y-3">
-              <label className="text-xs md:text-sm font-bold text-[#111827]">Foto Dokumentasi Tanaman *</label>
-              <label className="relative block border-2 border-dashed border-emerald-100 rounded-[24px] md:rounded-[32px] p-6 md:p-10 cursor-pointer bg-[#FBFDFB] hover:bg-emerald-50/30 transition-all group overflow-hidden text-center">
-                <input type="file" accept="image/*" capture="environment" onChange={handlePhoto} className="hidden" />
-                <div className="flex flex-col items-center justify-center">
-                  {photoPreview ? (
-                    <div className="relative h-32 w-32 md:h-48 md:w-48 mb-4">
-                      <img src={photoPreview} className="h-full w-full object-cover rounded-xl md:rounded-2xl shadow-xl border-2 md:border-4 border-white" alt="Preview" />
-                      <div className="absolute inset-0 bg-emerald-900/40 rounded-xl md:rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <RotateCcw className="text-white" size={20} />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="h-12 w-12 md:h-16 md:w-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4 md:mb-6 text-emerald-500">
-                      <CloudUpload size={24} className="md:w-7 md:h-7" />
-                    </div>
-                  )}
-                  <h4 className="text-[#111827] font-bold text-base md:text-lg">
-                    {photoFile ? 'Foto Terpilih!' : 'Klik untuk Ambil Foto'}
-                  </h4>
-                  <p className="text-gray-400 text-[10px] md:text-xs mt-1 max-w-xs mx-auto">
-                    Format JPEG, PNG - Pastikan detail tanaman terlihat jelas.
-                  </p>
-                </div>
-              </label>
-            </div>
-
-            {/* Description Section */}
-            <div className="space-y-2">
-              <label className="text-xs md:text-sm font-bold text-[#111827]">Catatan Agronomis</label>
-              <textarea
-                value={form.agronomicNotes}
-                onChange={e => updateField('agronomicNotes', e.target.value)}
-                placeholder="NPK, hama rendah, dsb..."
-                className="w-full bg-[#FAFAFA] border border-gray-100 rounded-2xl md:rounded-3xl px-4 md:px-6 py-4 md:py-5 text-xs md:text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:bg-white focus:border-emerald-500 transition-all h-28 md:h-32 resize-none"
-              />
-            </div>
-
-            {/* QR Preview Section */}
-            {form.batchId && (
-              <div className="p-6 md:p-8 bg-emerald-50/30 rounded-[28px] md:rounded-[32px] border border-emerald-50 flex flex-col items-center md:flex-row gap-6 md:gap-8 animate-in fade-in zoom-in-95">
-                <div ref={qrRef} className="bg-white p-4 rounded-xl shadow-sm border border-emerald-50 shrink-0">
-                  <QRCodeSVG value={qrPayload} size={100} className="md:w-[120px] md:h-[120px]" level="H" />
-                </div>
-                <div className="text-center md:text-left">
-                  <h4 className="text-[10px] md:text-xs font-bold text-[#111827] uppercase tracking-widest leading-none">{form.batchId}</h4>
-                  <p className="text-emerald-700 font-bold text-[10px] md:text-xs mt-1 uppercase leading-tight">{form.plantName || 'Varietas Belum Diisi'}</p>
-                  <p className="text-[10px] text-gray-400 mt-2">Digunakan sebagai label identitas dilingkungan lahan.</p>
-                  <button
-                    onClick={downloadQR}
-                    className="mt-4 flex items-center justify-center md:justify-start gap-2 text-emerald-600 font-bold text-[10px] md:text-xs hover:text-emerald-800 transition-colors w-full md:w-auto"
-                  >
-                    <Download size={12} /> Download Label
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Form Footer Buttons */}
-        <div className="p-6 md:p-10 bg-emerald-50/10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3 w-full md:w-auto order-2 md:order-1">
-            <button
-              onClick={() => navigate('/assets')}
-              className="flex-1 md:flex-none px-6 md:px-8 py-3.5 md:py-4 bg-white border border-gray-200 text-[#111827] font-bold text-xs md:text-sm rounded-xl md:rounded-2xl hover:bg-gray-50 transition-all active:scale-95"
-            >
-              Batal
-            </button>
             <button
               onClick={() => {
+                setSuccess(false);
                 setForm(initialForm);
                 setPhotoFile(null);
                 setPhotoPreview(null);
               }}
-              className="flex-1 md:flex-none px-6 md:px-8 py-3.5 md:py-4 bg-white border border-gray-200 text-[#111827] font-bold text-xs md:text-sm rounded-xl md:rounded-2xl hover:bg-gray-50 transition-all active:scale-95"
+              className="mt-8 text-stone-400 text-xs font-bold hover:text-stone-600 transition-colors flex items-center gap-1"
             >
-              Reset
+              <RotateCcw size={12} /> Daftarkan Batch Lainnya
             </button>
           </div>
+        </div>
+      </div>
+    );
+  }
 
-          <button
-            onClick={handleSubmit}
-            disabled={!isComplete || loading}
-            className="w-full md:w-auto px-10 py-3.5 md:py-4 bg-emerald-900 text-white font-bold text-xs md:text-sm rounded-xl md:rounded-2xl hover:bg-emerald-950 transition-all active:scale-95 disabled:opacity-20 flex items-center justify-center gap-2 order-1 md:order-2"
-          >
-            {loading ? <Loader2 className="animate-spin" size={16} /> : 'Simpan Batch & QR'}
-          </button>
+  return (
+    <div className="w-full min-h-screen bg-cream">
+      {/* Container with top margin to avoid overlap with sticky navbar if any layout issue occurs */}
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 space-y-6">
+
+        {/* Header Breadcrumb */}
+        <div className="flex items-center gap-2 text-[11px] md:text-sm text-stone-400 mb-2 ml-1">
+          <span onClick={() => navigate('/assets')} className="cursor-pointer hover:text-teal font-medium transition-colors uppercase tracking-wider">Monitoring</span>
+          <ChevronRight size={12} className="opacity-50" />
+          <span className="text-stone-900 font-bold uppercase tracking-wider">Pendaftaran Batch Tanaman</span>
+        </div>
+
+        {/* Main Form Card */}
+        <div className="bg-white rounded-3xl border border-stone-200/60 shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-700">
+          {/* Form Header */}
+          <div className="p-8 md:p-12 pb-6 md:pb-8 flex items-start gap-5 md:gap-7 bg-gradient-to-br from-white to-emerald-50/30">
+            <div className="h-12 w-12 md:h-16 md:w-16 shrink-0 rounded-2xl md:rounded-[24px] bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-inner">
+              <Sprout size={28} className="md:w-8 md:h-8" />
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-black text-[#111827] tracking-tight italic">Registrasi Lahan & Tanaman</h1>
+              <p className="text-gray-500 text-sm md:text-base mt-1 leading-tight">Digitalisasi unit agrikultur dengan geotagging dan QR batch secara instan.</p>
+            </div>
+          </div>
+
+          <div className="px-8 md:px-12 py-4">
+            <div className="space-y-8 md:space-y-10">
+              {/* Row 1: Batch ID & Commodity */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                <div className="space-y-3">
+                  <label className="text-xs md:text-sm font-black text-[#111827] ml-0.5 uppercase tracking-widest opacity-70">Batch ID / Kode Lot *</label>
+                  <div className="relative group">
+                    <input
+                      type="text"
+                      value={form.batchId}
+                      onChange={e => updateField('batchId', e.target.value)}
+                      placeholder="Contoh: PADI-2024-A1"
+                      className="w-full bg-[#FAFAFA] border-2 border-gray-100 rounded-2xl px-5 md:px-6 py-4 md:py-5 text-sm md:text-base font-bold text-gray-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/5 focus:bg-white focus:border-emerald-500 transition-all placeholder:font-normal placeholder:opacity-50"
+                    />
+                    <button
+                      onClick={generateId}
+                      className="absolute right-3 md:right-4 top-1/2 -translate-y-1/2 px-3 md:px-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] md:text-xs font-black hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 active:scale-95"
+                    >
+                      GENERATE
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-xs md:text-sm font-black text-[#111827] ml-0.5 uppercase tracking-widest opacity-70">Kategori Komoditas</label>
+                  <div className="relative group">
+                    <select
+                      value={form.commodity}
+                      onChange={e => updateField('commodity', e.target.value)}
+                      className="w-full bg-[#FAFAFA] border-2 border-gray-100 rounded-2xl px-5 md:px-6 py-4 md:py-5 text-sm md:text-base font-bold text-gray-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/5 focus:bg-white focus:border-emerald-500 transition-all appearance-none"
+                    >
+                      <option value="">Pilih Komoditas</option>
+                      {commodities.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                    <div className="absolute right-5 md:right-6 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                      <ChevronDown size={18} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 2: Plant Name & Manager */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                <div className="space-y-3">
+                  <label className="text-xs md:text-sm font-black text-[#111827] ml-0.5 uppercase tracking-widest opacity-70">Varietas / Nama Tanaman *</label>
+                  <input
+                    type="text"
+                    value={form.plantName}
+                    onChange={e => updateField('plantName', e.target.value)}
+                    placeholder="Padi IR64 / Jagung Hybrid"
+                    className="w-full bg-[#FAFAFA] border-2 border-gray-100 rounded-2xl px-5 md:px-6 py-4 md:py-5 text-sm md:text-base font-bold text-gray-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/5 focus:bg-white focus:border-emerald-500 transition-all placeholder:font-normal"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-xs md:text-sm font-black text-[#111827] ml-0.5 uppercase tracking-widest opacity-70">Penanggung Jawab</label>
+                  <input
+                    type="text"
+                    value={form.fieldManager}
+                    onChange={e => updateField('fieldManager', e.target.value)}
+                    placeholder="Nama petani / pengelola"
+                    className="w-full bg-[#FAFAFA] border-2 border-gray-100 rounded-2xl px-5 md:px-6 py-4 md:py-5 text-sm md:text-base font-bold text-gray-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/5 focus:bg-white focus:border-emerald-500 transition-all placeholder:font-normal"
+                  />
+                </div>
+              </div>
+
+              {/* Row 3: Planting Date & Population */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                <div className="space-y-3">
+                  <label className="text-xs md:text-sm font-black text-[#111827] ml-0.5 uppercase tracking-widest opacity-70">Tanggal Tanam</label>
+                  <input
+                    type="date"
+                    value={form.plantingDate}
+                    onChange={e => updateField('plantingDate', e.target.value)}
+                    className="w-full bg-[#FAFAFA] border-2 border-gray-100 rounded-2xl px-5 md:px-6 py-4 md:py-5 text-sm md:text-base font-bold text-gray-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/5 focus:bg-white focus:border-emerald-500 transition-all"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-xs md:text-sm font-black text-[#111827] ml-0.5 uppercase tracking-widest opacity-70">Populasi (Jumlah Batang/Unit)</label>
+                  <input
+                    type="number"
+                    value={form.plantPopulation}
+                    onChange={e => updateField('plantPopulation', e.target.value)}
+                    placeholder="Contoh: 500"
+                    className="w-full bg-[#FAFAFA] border-2 border-gray-100 rounded-2xl px-5 md:px-6 py-4 md:py-5 text-sm md:text-base font-bold text-gray-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/5 focus:bg-white focus:border-emerald-500 transition-all placeholder:font-normal"
+                  />
+                </div>
+              </div>
+
+
+              {/* Row 4: Farm Location */}
+              <div className="space-y-3">
+                <label className="text-xs md:text-sm font-black text-[#111827] ml-0.5 uppercase tracking-widest opacity-70">Alamat Lahan / Nama Plot</label>
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="relative flex-1 group">
+                    <input
+                      type="text"
+                      value={form.location}
+                      onChange={e => updateField('location', e.target.value)}
+                      placeholder="Contoh: Desa Makmur, Blok B, Sawah Kidul"
+                      className="w-full bg-[#FAFAFA] border-2 border-gray-100 rounded-2xl px-5 md:px-6 py-4 md:py-5 text-sm md:text-base font-bold text-gray-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/5 focus:bg-white focus:border-emerald-500 transition-all placeholder:font-normal"
+                    />
+                    <MapPin className="absolute right-5 md:right-6 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" size={20} />
+                  </div>
+                  <button 
+                    onClick={refreshLocation}
+                    disabled={locLoading}
+                    className="h-[56px] md:h-auto px-6 bg-white border-2 border-stone-100 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase text-teal hover:border-teal/30 transition-all shadow-sm active:scale-95"
+                  >
+                    {locLoading ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}
+                    {coords ? `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}` : 'Ambil Koordinat'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Row 5: Growth Phase */}
+              <div className="space-y-3">
+                <label className="text-xs md:text-sm font-black text-[#111827] ml-0.5 uppercase tracking-widest opacity-70">Fase Pertumbuhan</label>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  {[
+                    { id: 'pesemaian', label: 'Pesemaian' },
+                    { id: 'vegetatif', label: 'Vegetatif' },
+                    { id: 'generatif', label: 'Generatif' },
+                    { id: 'panen', label: 'Panen' },
+                    { id: 'pasca_panen', label: 'Pasca' },
+                  ].map(phase => (
+                    <button
+                      key={phase.id}
+                      onClick={() => updateField('growthStatus', phase.id)}
+                      className={`py-3 px-2 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-tighter transition-all border-2 ${form.growthStatus === phase.id
+                        ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-100'
+                        : 'bg-white border-gray-100 text-gray-400 hover:bg-gray-50 hover:border-emerald-200'
+                        }`}
+                    >
+                      {phase.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Upload Section */}
+              <div className="space-y-4">
+                <label className="text-xs md:text-sm font-black text-[#111827] uppercase tracking-widest opacity-70 flex items-center gap-2">
+                   Foto Dokumentasi Tanaman
+                   <span className="px-3 py-1 bg-red-100 text-red-600 text-[9px] font-black rounded-full uppercase tracking-widest">Wajib</span>
+                </label>
+                <label className="relative block border-2 border-dashed border-emerald-100 rounded-[32px] md:rounded-[40px] p-8 md:p-14 cursor-pointer bg-[#FBFDFB] hover:bg-emerald-50 transition-all group overflow-hidden text-center shadow-inner">
+                  <input type="file" accept="image/*" capture="environment" onChange={handlePhoto} className="hidden" />
+                  <div className="flex flex-col items-center justify-center">
+                    {photoPreview ? (
+                      <div className="relative h-40 w-40 md:h-56 md:w-56 mb-6 group-hover:scale-105 transition-transform duration-500">
+                        <img src={photoPreview} className="h-full w-full object-cover rounded-3xl shadow-2xl border-4 border-white" alt="Preview" />
+                        <div className="absolute inset-0 bg-emerald-900/40 rounded-3xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]">
+                          <RotateCcw className="text-white" size={32} />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="h-16 w-16 md:h-20 md:w-20 bg-white rounded-full flex items-center justify-center shadow-xl border border-emerald-50 mb-6 md:mb-8 text-emerald-500 group-hover:rotate-12 transition-transform">
+                        <Camera size={32} className="md:w-10 md:h-10" />
+                      </div>
+                    )}
+                    <h4 className="text-[#111827] font-black text-lg md:text-xl italic">
+                      {photoFile ? 'Foto Terpilih!' : 'Ambil Foto Lahan'}
+                    </h4>
+                    <p className="text-gray-400 text-xs md:text-sm mt-2 max-w-sm mx-auto font-medium">
+                      Gunakan kamera untuk dokumentasi awal unit tanaman. Pastikan pencahayaan cukup.
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              {/* Description Section */}
+              <div className="space-y-3">
+                <label className="text-xs md:text-sm font-black text-[#111827] uppercase tracking-widest opacity-70">Catatan Agronomis</label>
+                <textarea
+                  value={form.agronomicNotes}
+                  onChange={e => updateField('agronomicNotes', e.target.value)}
+                  placeholder="Kebutuhan NPK, populasi per hektar, atau kondisi tanah..."
+                  className="w-full bg-[#FAFAFA] border-2 border-gray-100 rounded-3xl px-6 md:px-8 py-5 md:py-6 text-sm md:text-base font-bold text-gray-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/5 focus:bg-white focus:border-emerald-500 transition-all h-32 md:h-40 resize-none placeholder:font-normal"
+                />
+              </div>
+
+              {/* QR Preview Section */}
+              {form.batchId && (
+                <div className="p-8 md:p-10 bg-emerald-900 rounded-[32px] md:rounded-[48px] border border-emerald-800 flex flex-col md:flex-row items-center gap-8 md:gap-10 shadow-2xl shadow-emerald-200/50 animate-in fade-in zoom-in-95 duration-500">
+                  <div ref={qrRef} className="bg-white p-5 rounded-[24px] shadow-2xl shrink-0 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
+                    <QRCodeSVG value={qrPayload} size={140} className="md:w-[160px] md:h-[160px]" level="H" includeMargin />
+                  </div>
+                  <div className="text-center md:text-left flex-1">
+                    <div className="inline-flex px-3 py-1 bg-emerald-500 text-white rounded-lg text-[9px] font-black uppercase tracking-widest mb-3">Live Preview Label</div>
+                    <h4 className="text-2xl md:text-3xl font-black text-white tracking-tighter leading-none">{form.batchId}</h4>
+                    <p className="text-emerald-300 font-bold text-sm md:text-base mt-2 flex items-center justify-center md:justify-start gap-2 italic">
+                      <Leaf size={16} /> {form.plantName || 'Varietas Belum Diisi'}
+                    </p>
+                    <p className="text-xs text-emerald-400/80 mt-4 leading-relaxed max-w-sm">Label ini akan terintegrasi dengan sistem pemantauan real-time setelah disimpan.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Form Footer Buttons */}
+          <div className="p-8 md:p-12 mt-8 bg-[#FAFAFA] border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-4 w-full md:w-auto order-2 md:order-1">
+              <button
+                onClick={() => navigate('/assets')}
+                className="flex-1 md:flex-none px-10 py-5 bg-white border-2 border-gray-200 text-stone-600 font-black text-xs md:text-sm rounded-2xl md:rounded-[24px] hover:bg-gray-50 hover:border-stone-300 transition-all active:scale-95 uppercase tracking-widest"
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => {
+                  setForm(initialForm);
+                  setPhotoFile(null);
+                  setPhotoPreview(null);
+                }}
+                className="flex-1 md:flex-none px-10 py-5 bg-white border-2 border-gray-200 text-stone-600 font-black text-xs md:text-sm rounded-2xl md:rounded-[24px] hover:bg-gray-50 hover:border-stone-300 transition-all active:scale-95 uppercase tracking-widest"
+              >
+                Reset
+              </button>
+            </div>
+
+            <button
+              onClick={handleSubmit}
+              disabled={!isComplete || loading}
+              className="w-full md:w-auto px-12 py-5 bg-emerald-700 text-white font-black text-sm md:text-base rounded-2xl md:rounded-[32px] hover:bg-emerald-800 transition-all shadow-xl shadow-emerald-200 active:scale-95 disabled:opacity-30 disabled:grayscale disabled:shadow-none flex items-center justify-center gap-3 order-1 md:order-2 uppercase tracking-widest"
+            >
+              {loading ? <Loader2 className="animate-spin" size={20} /> : (
+                <>
+                  <Upload size={20} /> Simpan & Aktifkan QR
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>
