@@ -93,5 +93,48 @@ export const useAttendance = () => {
     return data;
   }, []);
 
-  return { saveAsset, fetchCheckIns, loading, error };
+  const updateAsset = async (id: string, data: Partial<AssetData>) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('check_ins')
+        .update({
+          asset_name: data.asset_name,
+          condition: data.condition,
+          notes: data.notes,
+          category: data.category
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+      return { success: true };
+    } catch (err: any) {
+      console.error('Update failed:', err);
+      setError(err.message);
+      return { success: false };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteAsset = async (id: string) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('check_ins')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return { success: true };
+    } catch (err: any) {
+      console.error('Delete failed:', err);
+      setError(err.message);
+      return { success: false };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { saveAsset, fetchCheckIns, updateAsset, deleteAsset, loading, error };
 };

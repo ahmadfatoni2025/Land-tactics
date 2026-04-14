@@ -1,133 +1,48 @@
-Pilihan yang tepat. Menggunakan **.tsx** berarti kita akan memanfaatkan **React** (atau Next.js), yang membuat manajemen *state* untuk kamera, map, dan data dari Supabase menjadi jauh lebih terorganisir.
+Untuk memantau perkembangan tanaman secara konsisten, form tersebut harus mencakup data kuantitatif (angka) dan kualitatif (deskripsi). Karena Anda sedang mendalami **Full-stack Web Development** dengan **Next.js** dan **Supabase**, Anda bisa menggunakan struktur data di bawah ini sebagai acuan pembuatan skema *database* atau tampilan UI form.
 
-Berikut adalah panduan struktur kode dan implementasi menggunakan **React/Next.js + Supabase + Leaflet**.
-
----
-
-## 🏗️ Struktur Folder (Next.js/React)
-
-Karena kita menggunakan `.tsx`, kita akan membagi logika ke dalam komponen agar tidak menumpuk di satu file.
-
-```text
-src/
-├── lib/
-│   └── supabase.ts      // Konfigurasi client Supabase
-├── components/
-│   ├── Scanner.tsx      // Komponen html5-qrcode
-│   ├── MapView.tsx      // Komponen Leaflet Map
-│   └── FormInput.tsx    // Handle upload & koordinat
-└── App.tsx              // Main Page
-```
+Berikut adalah draf form yang wajib diisi:
 
 ---
 
-## 🛠️ Implementasi Kode Dasar
+## **Form Pemantauan Perkembangan Tanaman**
+> **Catatan:** Semua kolom bertanda bintang (**\***) wajib diisi.
 
-### 1. Konfigurasi Client (`src/lib/supabase.ts`)
-```tsx
-import { createClient } from '@supabase/supabase-js';
+### **1. Informasi Dasar (Log Entry)**
+* **Tanggal Pengamatan\***: (Format: DD/MM/YYYY)
+* **Waktu Pengamatan\***: (Pagi / Siang / Sore)
+* **Nama/ID Tanaman\***: (Contoh: Monstera-01, Tomat-A)
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+### **2. Metrik Pertumbuhan (Data Fisik)**
+* **Tinggi Tanaman (cm)\***: (Input angka)
+* **Jumlah Daun\***: (Input angka)
+* **Lebar Daun Terbesar (cm)**: (Opsional - untuk detail tambahan)
+* **Status Kondisi Umum\***:
+    * [ ] Sangat Sehat
+    * [ ] Sehat
+    * [ ] Kurang Sehat (Layu/Menguning)
+    * [ ] Kritis
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-```
+### **3. Perawatan yang Dilakukan**
+* **Penyiraman\***:
+    * [ ] Sudah
+    * [ ] Tidak (Tanah masih lembap)
+* **Pemberian Nutrisi/Pupuk\***:
+    * [ ] Ya (Sebutkan jenis: _______)
+    * [ ] Tidak
+* **Pencahayaan\***: (Pilih: Teduh / Terang Tidak Langsung / Matahari Langsung)
 
-### 2. Komponen Scanner (`src/components/Scanner.tsx`)
-Gunakan `useEffect` untuk inisialisasi kamera agar tidak terjadi *memory leak*.
-
-```tsx
-import { Html5QrcodeScanner } from 'html5-qrcode';
-import { useEffect } from 'react';
-
-interface ScannerProps {
-  onResult: (decodedText: string) => void;
-}
-
-export const Scanner = ({ onResult }: ScannerProps) => {
-  useEffect(() => {
-    const scanner = new Html5QrcodeScanner(
-      "reader", 
-      { fps: 10, qrbox: { width: 250, height: 250 } }, 
-      /* verbose= */ false
-    );
-
-    scanner.render(onResult, (error) => {
-      // Diamkan saja agar tidak spam console saat tidak ada barcode
-    });
-
-    return () => scanner.clear();
-  }, [onResult]);
-
-  return <div id="reader" className="w-full max-w-md mx-auto"></div>;
-};
-```
-
-### 3. Logika Upload & Simpan (`src/components/FormInput.tsx`)
-Fungsi utama untuk menangani alur GPS, Foto, dan Database.
-
-```tsx
-import { supabase } from '../lib/supabase';
-
-export const saveAttendance = async (barcodeId: string, file: File) => {
-  // 1. Ambil GPS
-  const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(resolve, reject);
-  });
-
-  const { latitude, longitude } = pos.coords;
-
-  // 2. Upload Foto ke Supabase Storage
-  const fileName = `${barcodeId}-${Date.now()}.jpg`;
-  const { data: storageData, error: uploadError } = await supabase.storage
-    .from('photos')
-    .upload(fileName, file);
-
-  if (uploadError) throw uploadError;
-
-  // 3. Ambil Public URL
-  const { data: { publicUrl } } = supabase.storage
-    .from('photos')
-    .getPublicUrl(fileName);
-
-  // 4. Simpan ke Database
-  const { error: dbError } = await supabase
-    .from('check_ins')
-    .insert({
-      barcode_id: barcodeId,
-      lat: latitude,
-      lng: longitude,
-      photo_url: publicUrl
-    });
-
-  if (dbError) throw dbError;
-};
-```
+### **4. Dokumentasi & Catatan**
+* **Foto Tanaman\***: (Upload file/Ambil gambar)
+* **Catatan Tambahan**: (Contoh: Muncul tunas baru, ada bintik putih di batang, atau serangan hama).
 
 ---
 
-## 📋 Skema Database (SQL)
-Jalankan perintah ini di **SQL Editor** Supabase kamu untuk membuat tabel yang sesuai:
+## **Ide Implementasi untuk Project Anda**
 
-```sql
--- Buat Tabel
-create table check_ins (
-  id uuid default gen_random_uuid() primary key,
-  barcode_id text not null,
-  lat float8 not null,
-  lng float8 not null,
-  photo_url text,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
+Jika Anda ingin membangun ini menggunakan **Next.js** dan **Tailwind CSS**, berikut adalah saran teknisnya:
 
--- Buat Bucket Storage (Bisa juga via Dashboard UI)
--- Pastikan bucket 'photos' diset PUBLIC.
-```
+* **Input Validation:** Gunakan *library* seperti **React Hook Form** dengan **Zod** untuk memastikan semua kolom wajib diisi sebelum data dikirim ke *backend*.
+* **Database (Supabase):** Simpan foto di **Supabase Storage** dan data teks di **PostgreSQL**.
+* **Dashboard:** Karena Anda punya dua monitor, Anda bisa memfungsikan monitor kedua untuk menampilkan *Real-time Chart* (menggunakan **Chart.js** atau **Recharts**) guna melihat grafik tinggi tanaman dari waktu ke waktu berdasarkan input form ini.
 
----
-
-## 💡 Catatan Penting untuk .tsx:
-1.  **Leaflet di Next.js:** Leaflet membutuhkan objek `window`. Jika kamu pakai Next.js, pastikan mengimpor komponen Map menggunakan `dynamic import` dengan `{ ssr: false }`.
-2.  **Type Safety:** Karena ini `.tsx`, pastikan kamu mendefinisikan interface untuk data yang kamu ambil dari Supabase agar *IntelliSense* berjalan maksimal.
-
-Apakah kamu ingin saya buatkan **Halaman Utama (`App.tsx`)** yang menggabungkan semua komponen ini menjadi satu alur utuh?
+Apakah form ini akan Anda buat sebagai aplikasi *mobile* untuk digunakan langsung di kebun, atau sistem *dashboard* desktop?

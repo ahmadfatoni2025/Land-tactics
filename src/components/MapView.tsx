@@ -142,8 +142,8 @@ export const MapView = ({ checkIns, center, zoom = 13, className, layerType = 's
       if (checkIns.length > 0 && !hasFitBounds.current) {
         const validForBounds = checkIns.filter(c => !isNaN(Number(c.lat)) && !isNaN(Number(c.lng)));
         if (validForBounds.length > 0) {
-            const group = L.featureGroup(validForBounds.map(c => L.marker([c.lat, c.lng])));
-            leafletMap.current.fitBounds(group.getBounds().pad(0.2));
+          const group = L.featureGroup(validForBounds.map(c => L.marker([c.lat, c.lng])));
+          leafletMap.current.fitBounds(group.getBounds().pad(0.2));
         }
         hasFitBounds.current = true;
       }
@@ -171,13 +171,13 @@ export const MapView = ({ checkIns, center, zoom = 13, className, layerType = 's
   // Efek untuk menggambar Zona Penghijauan (Forest Greening Area)
   useEffect(() => {
     if (!leafletMap.current || !zonesLayer.current) return;
-    
+
     zonesLayer.current.clearLayers();
 
     if (showGreenZone && checkIns.length > 0) {
       // Lindungi dari potensi data kordinat database yang rusak atau bertipe String
       const validCheckIns = checkIns.filter(c => !isNaN(Number(c.lat)) && !isNaN(Number(c.lng)));
-      
+
       if (validCheckIns.length === 0) return;
 
       // Cari titik tengah (centroid) dari seluruh tanaman untuk membuat zona lingkaran
@@ -201,7 +201,7 @@ export const MapView = ({ checkIns, center, zoom = 13, className, layerType = 's
       `);
 
       zonesLayer.current.addLayer(greenZone);
-      
+
       // Animasi kamera HANYA saat fitur baru saja dinyalakan (bukan saat sedang mengetik pencarian)
       if (!prevShowZone.current) {
         leafletMap.current.flyToBounds(greenZone.getBounds().pad(0.1), { animate: true, duration: 1.5 });
@@ -214,7 +214,7 @@ export const MapView = ({ checkIns, center, zoom = 13, className, layerType = 's
   return (
     <div
       ref={mapRef}
-      className={className || "w-full h-full rounded-2xl"}
+      className={className || "w-full h-full"}
       style={{ minHeight: '300px' }}
     />
   );

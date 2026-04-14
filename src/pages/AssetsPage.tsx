@@ -2,11 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAttendance } from '../hooks/useAttendance';
 import {
-  Search, Filter, MapPin, Clock, MoreHorizontal, Box,
-  ChevronLeft, ChevronRight, Plus, Leaf
+  Search, MapPin, Clock, Plus, Leaf,
+  Trash2, Edit2, X, CheckCircle,
+  AlertCircle, ChevronLeft, Loader2,
+  Package, Calendar, TrendingUp
 } from 'lucide-react';
 
-// Karena CheckIn interface di MapView sudah diupdate, kita butuh definisi yang sama:
 interface AssetRecord {
   id: string;
   barcode_id: string;
@@ -18,194 +19,350 @@ interface AssetRecord {
   created_at: string;
 }
 
+const statusConfig = {
+  subur: { label: 'Subur', color: 'emerald', icon: CheckCircle },
+  sehat: { label: 'Sehat', color: 'blue', icon: CheckCircle },
+  normal: { label: 'Normal', color: 'gray', icon: Package },
+  layu: { label: 'Layu', color: 'amber', icon: AlertCircle },
+  mati: { label: 'Mati', color: 'rose', icon: AlertCircle },
+};
+
 export const AssetsPage = () => {
-  const { fetchCheckIns } = useAttendance();
+  const { fetchCheckIns, deleteAsset, updateAsset, loading: actionLoading } = useAttendance();
   const [checkIns, setCheckIns] = useState<AssetRecord[]>([]);
   const [search, setSearch] = useState('');
+  const [editingAsset, setEditingAsset] = useState<AssetRecord | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
+  const [isLoading, setIsLoading] = useState(true);
 
   const loadData = useCallback(async () => {
+    setIsLoading(true);
     const data = await fetchCheckIns();
     setCheckIns(data);
+    setIsLoading(false);
   }, [fetchCheckIns]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  const filtered = checkIns.filter((c) =>
-    c.barcode_id.toLowerCase().includes(search.toLowerCase()) || 
-    (c.asset_name && c.asset_name.toLowerCase().includes(search.toLowerCase()))
-  );
+  const handleDelete = async (id: string) => {
+    if (!confirm('Hapus data aset ini?')) return;
+    const res = await deleteAsset(id);
+    if (res.success) loadData();
+  };
 
-  // Helper pewarnaan kondisi
-  const getConditionColor = (cond?: string) => {
-    switch (cond?.toLowerCase()) {
-      case 'subur': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      case 'normal': return 'bg-teal-100 text-teal-700 border-teal-200';
-      case 'layu': return 'bg-amber-100 text-amber-700 border-amber-200';
-      case 'mati': return 'bg-red-100 text-red-700 border-red-200';
-      default: return 'bg-stone-100 text-stone-600 border-stone-200';
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAsset) return;
+    const res = await updateAsset(editingAsset.id, {
+      asset_name: editingAsset.asset_name,
+      condition: editingAsset.condition
+    });
+    if (res.success) {
+      setShowEditModal(false);
+      loadData();
     }
   };
 
+  const getStatusBadge = (condition?: string) => {
+    const status = condition?.toLowerCase() || 'normal';
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.normal;
+
+    return (
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-${config.color}-50 text-${config.color}-700`}>
+        <config.icon size={12} />
+        {config.label}
+      </span>
+    );
+  };
+
+  const filtered = checkIns.filter((c) => {
+    const matchesSearch = c.barcode_id.toLowerCase().includes(search.toLowerCase()) ||
+      (c.asset_name && c.asset_name.toLowerCase().includes(search.toLowerCase()));
+    if (activeTab === 'all') return matchesSearch;
+    return matchesSearch && c.condition?.toLowerCase() === activeTab;
+  });
+
+  const stats = {
+    total: checkIns.length,
+    healthy: checkIns.filter(c => ['subur', 'sehat', 'normal'].includes(c.condition?.toLowerCase() || '')).length,
+    critical: checkIns.filter(c => ['layu', 'mati'].includes(c.condition?.toLowerCase() || '')).length,
+  };
+
   return (
-    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">Daftar Aset</h1>
-          <p className="text-sm text-stone-400 mt-1">Kelola dan lacak semua aset yang telah didaftarkan</p>
-        </div>
-        <div className="flex gap-3">
-          <Link
-            to="/generate"
-            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 shrink-0"
-          >
-            <Plus size={18} />
-            <span>Daftarkan Aset Baru</span>
-          </Link>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
 
-          <div className="relative flex-1 sm:flex-none">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-            <input
-              type="text"
-              placeholder="Cari aset..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full sm:w-64 bg-white rounded-xl pl-9 pr-4 py-2.5 text-sm border border-stone-200/60 focus:border-teal focus:ring-1 focus:ring-teal/20 outline-none transition-all"
-            />
+        {/* Header */}
+        <div className="mb-6 sm:mb-8">
+          <div className="flex items-center gap-2 text-gray-400 text-sm mb-3">
+            <Link to="/" className="hover:text-gray-600 transition-colors flex items-center gap-1">
+              <ChevronLeft size={16} />
+              <span>Dashboard</span>
+            </Link>
+            <span>/</span>
+            <span className="text-gray-600">Assets</span>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-xl border border-stone-200/60 text-sm font-medium text-stone-600 hover:bg-stone-50 transition-colors shrink-0">
-            <Filter size={14} />
-            <span className="hidden sm:inline">Saring</span>
-          </button>
-        </div>
-      </div>
 
-      {/* Kartu Grid (Mobile) */}
-      <div className="sm:hidden space-y-3">
-        {filtered.map((ci) => (
-          <div key={ci.id} className="bg-white rounded-2xl border border-stone-200/60 p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-teal-50 flex items-center justify-center border border-teal-100">
-                  <Leaf size={18} className="text-teal-600" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900">Plant Assets</h1>
+              <p className="text-sm text-gray-500 mt-1">Monitor and manage all plant batches</p>
+            </div>
+
+            <Link
+              to="/generate"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-all shadow-sm"
+            >
+              <Plus size={18} />
+              New Registration
+            </Link>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 sm:mb-8">
+          <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gray-100 rounded-lg">
+                <Package size={18} className="text-gray-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">Total Assets</p>
+                <p className="text-xl font-semibold text-gray-900">{stats.total}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-emerald-50 rounded-lg">
+                <TrendingUp size={18} className="text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">Healthy</p>
+                <p className="text-xl font-semibold text-emerald-600">{stats.healthy}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-50 rounded-lg">
+                <AlertCircle size={18} className="text-amber-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">Critical</p>
+                <p className="text-xl font-semibold text-amber-600">{stats.critical}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Search and Filters */}
+        <div className="bg-white rounded-xl border border-gray-100 p-4 mb-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input
+                type="text"
+                placeholder="Search by name or ID..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-400 transition-all"
+              />
+            </div>
+
+            <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0">
+              {['all', 'subur', 'normal', 'layu', 'mati'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${activeTab === tab
+                    ? 'bg-gray-900 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                >
+                  {tab === 'all' ? 'All' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  {tab === 'all' && (
+                    <span className="ml-1.5 text-xs opacity-70">({filtered.length})</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Assets Grid */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
+          </div>
+        ) : filtered.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filtered.map((asset) => (
+              <div
+                key={asset.id}
+                className="group bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200"
+              >
+                {/* Image Section */}
+                <div className="relative h-48 bg-gray-100">
+                  <img
+                    src={asset.photo_url || 'https://placehold.co/400x300?text=No+Image'}
+                    alt={asset.asset_name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-3 right-3">
+                    {getStatusBadge(asset.condition)}
+                  </div>
                 </div>
+
+                {/* Content */}
+                <div className="p-5">
+                  <div className="mb-3">
+                    <h3 className="font-semibold text-gray-900 text-lg mb-1">
+                      {asset.asset_name || 'Unnamed Plant'}
+                    </h3>
+                    <p className="text-xs text-gray-400 font-mono">
+                      ID: {asset.barcode_id}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <MapPin size={14} className="text-gray-400" />
+                      <span className="text-xs">
+                        {asset.lat.toFixed(4)}, {asset.lng.toFixed(4)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Calendar size={14} className="text-gray-400" />
+                      <span className="text-xs">
+                        {new Date(asset.created_at).toLocaleDateString('id-ID', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric'
+                        })}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-3 border-t border-gray-100">
+                    <button
+                      onClick={() => {
+                        setEditingAsset(asset);
+                        setShowEditModal(true);
+                      }}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg text-xs font-medium transition-colors"
+                    >
+                      <Edit2 size={12} />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(asset.id)}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-50 hover:bg-rose-50 text-gray-600 hover:text-rose-600 rounded-lg text-xs font-medium transition-colors"
+                    >
+                      <Trash2 size={12} />
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl border border-gray-100 p-12 text-center shadow-sm">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gray-50 rounded-full flex items-center justify-center">
+              <Leaf size={24} className="text-gray-300" />
+            </div>
+            <h3 className="text-base font-medium text-gray-700 mb-1">No assets found</h3>
+            <p className="text-sm text-gray-400 mb-4">
+              {search ? 'Try adjusting your search' : 'Start by registering your first plant batch'}
+            </p>
+            {!search && (
+              <Link
+                to="/generate"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+              >
+                <Plus size={16} />
+                Register New
+              </Link>
+            )}
+          </div>
+        )}
+
+        {/* Edit Modal */}
+        {showEditModal && editingAsset && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-xl">
+              <div className="flex items-center justify-between p-5 border-b border-gray-100">
                 <div>
-                  <p className="text-sm font-bold text-stone-800 truncate max-w-[150px]">{ci.asset_name || ci.barcode_id}</p>
-                  <p className="text-[10px] text-stone-400 font-medium">
-                    ID: {ci.barcode_id}
+                  <h3 className="text-lg font-semibold text-gray-900">Edit Asset</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    ID: {editingAsset.barcode_id}
                   </p>
                 </div>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X size={18} className="text-gray-400" />
+                </button>
               </div>
-              <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg uppercase border ${getConditionColor(ci.condition)}`}>
-                {ci.condition || 'Aktif'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-xs text-stone-400 pt-3 border-t border-stone-50">
-              <div className="flex items-center gap-1">
-                <MapPin size={12} />
-                <span>{ci.lat.toFixed(3)}°, {ci.lng.toFixed(3)}°</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Clock size={12} />
-                <span>{new Date(ci.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
-              </div>
-            </div>
-          </div>
-        ))}
-        {filtered.length === 0 && (
-          <div className="text-center py-16">
-            <Box size={32} className="text-stone-200 mx-auto mb-3" />
-            <p className="text-sm text-stone-400">Belum ada aset. Mulai dengan mendaftarkan aset baru.</p>
-            <Link to="/generate" className="text-xs text-indigo-600 font-bold mt-2 inline-block hover:underline">
-              + Daftarkan Aset Baru
-            </Link>
-          </div>
-        )}
-      </div>
 
-      {/* Tabel (Tablet+) */}
-      <div className="hidden sm:block bg-white rounded-[32px] border border-stone-200/60 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-stone-100 bg-stone-50/50">
-                <th className="text-left text-[10px] font-black text-stone-400 uppercase tracking-widest px-8 py-5">Nama Tanaman & ID</th>
-                <th className="text-left text-[10px] font-black text-stone-400 uppercase tracking-widest px-8 py-5">Koordinat GPS</th>
-                <th className="text-left text-[10px] font-black text-stone-400 uppercase tracking-widest px-8 py-5">Kondisi</th>
-                <th className="text-left text-[10px] font-black text-stone-400 uppercase tracking-widest px-8 py-5">Scan Terakhir</th>
-                <th className="text-left text-[10px] font-black text-stone-400 uppercase tracking-widest px-8 py-5">Foto Live</th>
-                <th className="px-8 py-5"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-50">
-              {filtered.map((ci) => (
-                <tr key={ci.id} className="hover:bg-stone-50/50 transition-colors group">
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 border border-teal-100">
-                        <Leaf size={16} className="text-teal-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-stone-800">{ci.asset_name || 'Tanpa Nama'}</p>
-                        <p className="text-[10px] font-mono text-stone-400 mt-0.5">{ci.barcode_id}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-1 text-xs text-stone-500">
-                      <MapPin size={12} className="text-stone-300" />
-                      <span className="font-mono">{ci.lat.toFixed(4)}°, {ci.lng.toFixed(4)}°</span>
-                    </div>
-                  </td>
-                  <td className="px-8 py-5">
-                    <span className={`px-3 py-1.5 text-[10px] font-black rounded-lg uppercase tracking-widest border ${getConditionColor(ci.condition)}`}>
-                      {ci.condition || 'Aktif'}
-                    </span>
-                  </td>
-                  <td className="px-8 py-5">
-                    <p className="text-xs font-bold text-stone-600">{new Date(ci.created_at).toLocaleDateString('id-ID')}</p>
-                    <p className="text-[10px] font-medium text-stone-400 mt-0.5">{new Date(ci.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</p>
-                  </td>
-                  <td className="px-8 py-5">
-                    {ci.photo_url ? (
-                      <img src={ci.photo_url} alt="" className="h-8 w-8 rounded-lg object-cover" />
-                    ) : (
-                      <span className="text-xs text-stone-300">—</span>
-                    )}
-                  </td>
-                  <td className="px-8 py-5">
-                    <button className="p-1.5 text-stone-300 hover:text-stone-600 opacity-0 group-hover:opacity-100 transition-all">
-                      <MoreHorizontal size={16} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              <form onSubmit={handleUpdate} className="p-5 space-y-5">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    Plant Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editingAsset.asset_name || ''}
+                    onChange={e => setEditingAsset({ ...editingAsset, asset_name: e.target.value })}
+                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-400 transition-all"
+                    placeholder="Enter plant name"
+                  />
+                </div>
 
-        {filtered.length === 0 && (
-          <div className="text-center py-16">
-            <Box size={32} className="text-stone-200 mx-auto mb-3" />
-            <p className="text-sm text-stone-400">Belum ada aset terdaftar</p>
-            <Link to="/generate" className="text-xs text-indigo-600 font-bold mt-2 inline-block hover:underline">
-              + Daftarkan Aset Baru
-            </Link>
-          </div>
-        )}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    Condition
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {['subur', 'normal', 'layu', 'mati'].map((condition) => (
+                      <button
+                        key={condition}
+                        type="button"
+                        onClick={() => setEditingAsset({ ...editingAsset, condition })}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium capitalize transition-all ${editingAsset.condition === condition
+                          ? 'bg-gray-900 text-white'
+                          : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                          }`}
+                      >
+                        {condition}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-        {/* Paginasi */}
-        {filtered.length > 0 && (
-          <div className="flex items-center justify-between px-8 py-5 border-t border-stone-100">
-            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
-              Menampilkan {filtered.length} dari {checkIns.length} aset
-            </p>
-            <div className="flex gap-1">
-              <button className="p-2 rounded-lg hover:bg-stone-100 text-stone-400 transition-colors"><ChevronLeft size={16} /></button>
-              <button className="h-8 w-8 rounded-lg bg-teal text-white text-xs font-bold flex items-center justify-center shadow-md shadow-teal/10">1</button>
-              <button className="p-2 rounded-lg hover:bg-stone-100 text-stone-400 transition-colors"><ChevronRight size={16} /></button>
+                <div className="flex gap-3 pt-3">
+                  <button
+                    type="submit"
+                    disabled={actionLoading}
+                    className="flex-1 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {actionLoading ? <Loader2 size={16} className="animate-spin" /> : 'Save Changes'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowEditModal(false)}
+                    className="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

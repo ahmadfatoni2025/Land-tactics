@@ -1,46 +1,46 @@
 import { NavLink } from 'react-router-dom';
-import { Search, Bell, HelpCircle, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import {
+  Search, Bell, HelpCircle, LayoutDashboard,
+  Map as MapIcon, Scan, Boxes, Plus, MoreHorizontal
+} from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 const navItems = [
-  { to: '/', label: 'Dasbor' },
-  { to: '/scanner', label: 'Pemindai' },
-  { to: '/map', label: 'Peta' },
-  { to: '/assets', label: 'Aset' },
-  { to: '/generate', label: 'Generate QR' },
-  { to: '/reports', label: 'Laporan' },
+  { to: '/', label: 'Dasbor', icon: LayoutDashboard },
+  { to: '/map', label: 'Peta', icon: MapIcon },
+  { to: '/scanner', label: 'Scan', icon: Scan, primary: true },
+  { to: '/assets', label: 'Assets', icon: Boxes },
+  { to: '/generate', label: 'Add', icon: Plus },
 ];
 
 export const Navbar = () => {
-  const [mobileOpen, setMobileOpen] = useState(false);
-
   return (
     <>
-      <nav className="sticky top-0 z-50 bg-white border-b border-stone-200/60">
+      {/* --- DESKTOP TOP NAVBAR --- */}
+      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 hidden md:block">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
 
-            {/* Kiri: Logo + Navigasi */}
+            {/* Left: Logo + Nav */}
             <div className="flex items-center gap-8">
               <NavLink to="/" className="flex items-center gap-2.5 shrink-0">
-                <div className="h-9 w-9 rounded-full bg-teal flex items-center justify-center shadow-lg shadow-teal/20">
-                  <span className="text-white font-black text-sm">G</span>
+                <div className="h-9 w-9 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-100">
+                  <span className="text-white font-black text-sm italic">G</span>
                 </div>
+                <span className="font-bold text-gray-900 tracking-tight">GeoAgri</span>
               </NavLink>
 
-              {/* Desktop Nav */}
-              <div className="hidden md:flex items-center gap-1">
+              <div className="flex items-center gap-1">
                 {navItems.map((item) => (
                   <NavLink
                     key={item.to}
                     to={item.to}
                     end={item.to === '/'}
                     className={({ isActive }) => cn(
-                      "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
+                      "px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200",
                       isActive
-                        ? "bg-teal text-white shadow-md shadow-teal/15"
-                        : "text-stone-500 hover:text-stone-800 hover:bg-stone-100"
+                        ? "bg-indigo-50 text-indigo-700"
+                        : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
                     )}
                   >
                     {item.label}
@@ -49,61 +49,83 @@ export const Navbar = () => {
               </div>
             </div>
 
-            {/* Kanan: Aksi */}
+            {/* Right: Actions */}
             <div className="flex items-center gap-3">
-              <button className="hidden md:flex items-center gap-2 text-stone-400 hover:text-stone-600 text-sm font-medium transition-colors px-3 py-1.5">
-                <HelpCircle size={16} />
-                <span>Bantuan</span>
+              <button className="p-2 text-gray-400 hover:text-gray-900 transition-colors">
+                <Search size={20} />
               </button>
-
-              <button className="hidden sm:flex p-2.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-xl transition-all">
-                <Search size={18} />
+              <button className="relative p-2 text-gray-400 hover:text-gray-900 transition-colors">
+                <Bell size={20} />
+                <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 border-2 border-white"></span>
               </button>
-
-              <button className="relative p-2.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-xl transition-all">
-                <Bell size={18} />
-                <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-amber border-2 border-white"></span>
-              </button>
-
-              <div className="h-9 w-9 rounded-full overflow-hidden border-2 border-teal/20 shadow-sm cursor-pointer hover:border-teal/40 transition-all">
-                <div className="h-full w-full bg-gradient-to-br from-amber to-amber-light flex items-center justify-center">
-                  <span className="text-white text-xs font-black">AF</span>
-                </div>
+              <div className="h-8 w-8 rounded-full bg-gray-100 border border-gray-200 overflow-hidden cursor-pointer hover:ring-2 hover:ring-indigo-100 transition-all">
+                <div className="h-full w-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-700">AF</div>
               </div>
-
-              {/* Menu Mobile */}
-              <button
-                className="md:hidden p-2 text-stone-500 hover:bg-stone-100 rounded-xl"
-                onClick={() => setMobileOpen(!mobileOpen)}
-              >
-                {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-              </button>
             </div>
           </div>
         </div>
-
-        {/* Menu Dropdown Mobile */}
-        {mobileOpen && (
-          <div className="md:hidden border-t border-stone-100 bg-white pb-4 px-4 pt-2 space-y-1">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === '/'}
-                onClick={() => setMobileOpen(false)}
-                className={({ isActive }) => cn(
-                  "block px-4 py-3 rounded-2xl text-sm font-semibold transition-all",
-                  isActive
-                    ? "bg-teal text-white"
-                    : "text-stone-600 hover:bg-stone-50 active:bg-stone-100"
-                )}
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </div>
-        )}
       </nav>
+
+      {/* --- MOBILE TOP STATUS BAR (Logo Only) --- */}
+      <div className="md:hidden sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-50 px-6 py-4 flex items-center justify-between">
+        <NavLink to="/" className="flex items-center gap-2">
+          <div className="h-7 w-7 rounded-lg bg-indigo-600 flex items-center justify-center">
+            <span className="text-white font-black text-[10px] italic">G</span>
+          </div>
+          <span className="font-bold text-gray-900 text-sm tracking-tight">GeoAgri</span>
+        </NavLink>
+        <button className="p-2 bg-gray-50 rounded-full text-gray-400">
+          <Bell size={18} />
+        </button>
+      </div>
+
+      {/* --- MOBILE BOTTOM NAVIGATION --- */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-6 pb-6 pt-2">
+        <div className="bg-white/90 backdrop-blur-xl border border-gray-100 rounded-[24px] shadow-[0_10px_40px_rgba(0,0,0,0.1)] px-2 py-2">
+          <div className="flex items-center justify-around">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === '/'}
+                  className={({ isActive }) => cn(
+                    "relative flex flex-col items-center justify-center gap-1 transition-all duration-300",
+                    item.primary ? "px-2" : "flex-1 py-2",
+                    isActive && !item.primary ? "text-indigo-600" : "text-gray-400"
+                  )}
+                >
+                  {({ isActive }) => (
+                    <>
+                      {item.primary ? (
+                        <div className={cn(
+                          "h-12 w-12 rounded-full flex items-center justify-center text-white shadow-lg transition-transform active:scale-95 -mt-8 border-4 border-white",
+                          isActive ? "bg-indigo-700 shadow-indigo-300" : "bg-indigo-600 shadow-indigo-200"
+                        )}>
+                          <Icon size={22} strokeWidth={isActive ? 3 : 2.5} />
+                        </div>
+                      ) : (
+                        <>
+                          <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                          <span className="text-[9px] font-bold uppercase tracking-wider">{item.label}</span>
+                        </>
+                      )}
+                      {isActive && !item.primary && (
+                        <div className="absolute -bottom-1 h-1 w-1 rounded-full bg-indigo-600"></div>
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Spacer for bottom navbar content overlap */}
+      <div className="md:hidden h-20"></div>
     </>
   );
 };
+

@@ -11,46 +11,55 @@ export const Scanner = ({ onResult, isActive }: ScannerProps) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isActive) return;
+    if (!isActive) {
+      if (scannerRef.current) {
+        scannerRef.current.stop().catch(() => {});
+        scannerRef.current = null;
+      }
+      return;
+    }
 
-    const startScanner = async () => {
+    const initScanner = async () => {
+      // Tunggu sebentar untuk memastikan DOM sudah dirender (React transition)
+      await new Promise(r => setTimeout(r, 100));
+      
+      const element = document.getElementById("qr-reader");
+      if (!element) return;
+
       try {
-        // Minta izin kamera secara eksplisit
-        await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-
         const scanner = new Html5Qrcode("qr-reader");
         scannerRef.current = scanner;
 
+        const config = {
+          fps: 15,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+          formatsToSupport: [ 0 ], // QR_CODE only for efficiency
+        };
+
         await scanner.start(
           { facingMode: "environment" },
-          {
-            fps: 15,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0,
-          },
+          config,
           (decodedText) => {
+            // Berhenti setelah scan berhasil
             scanner.stop().then(() => {
               scannerRef.current = null;
               onResult(decodedText);
-            }).catch(console.error);
+            }).catch(e => {
+              console.warn("Scanner stop error (safe to ignore):", e);
+              onResult(decodedText); // Tetap kembalikan hasil
+            });
           },
-          () => {} // Abaikan error scan frame
+          () => {} // Ignore scan failure frames
         );
-
         setError(null);
       } catch (err: any) {
-        console.error('Gagal memulai kamera:', err);
-        if (err.name === 'NotAllowedError') {
-          setError('Akses kamera ditolak. Silakan izinkan akses kamera di pengaturan browser Anda.');
-        } else if (err.name === 'NotFoundError') {
-          setError('Kamera tidak ditemukan. Pastikan perangkat Anda memiliki kamera.');
-        } else {
-          setError(`Gagal membuka kamera: ${err.message || 'Error tidak dikenal'}`);
-        }
+        console.error('Scanner start error:', err);
+        setError(`Eror Kamera: ${err.message || 'Cek izin kamera'}`);
       }
     };
 
-    startScanner();
+    initScanner();
 
     return () => {
       if (scannerRef.current) {

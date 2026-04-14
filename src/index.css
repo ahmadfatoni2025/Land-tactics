@@ -78,3 +78,22 @@
   border: 1px solid #e5e2db !important;
   padding: 8px 12px !important;
 }
+
+@keyframes scan-laser {
+  0% {
+    top: 0;
+  }
+
+  50% {
+    top: 100%;
+  }
+
+  100% {
+    top: 0;
+  }
+}
+
+.animate-scan-laser {
+  position: absolute;
+  animation: scan-laser 2s linear infinite;
+}

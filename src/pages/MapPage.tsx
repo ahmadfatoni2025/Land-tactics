@@ -54,21 +54,6 @@ export const MapPage = () => {
           className="w-full h-full rounded-none"
         />
 
-        {/* Pencarian */}
-        <div className="absolute top-4 left-4 right-4 sm:right-auto sm:w-80 z-[1000]">
-          <div className="relative">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
-            <input
-              type="text"
-              placeholder="Cari aset & Tekan Enter..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={handleSearchSubmit}
-              className="w-full bg-white shadow-2xl rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold text-stone-800 border-2 border-transparent focus:border-indigo-500/30 outline-none transition-all placeholder:font-medium placeholder:text-stone-400"
-            />
-          </div>
-        </div>
-
         {/* Layer Peta (Dikonversi Menjadi Ikon Ala Google Maps) */}
         <div className="absolute top-20 left-4 z-[1000] flex flex-col gap-2">
           <button
@@ -97,7 +82,7 @@ export const MapPage = () => {
           <div className="w-11 h-px bg-stone-300/50 my-1"></div>
 
           {/* Toggle Zona Khusus */}
-          <button 
+          <button
             title="Zona Penghijauan / Konservasi"
             onClick={() => setShowZone(!showZone)}
             className={`h-11 w-11 flex items-center justify-center rounded-xl transition-all shadow-xl backdrop-blur-md ${showZone ? 'bg-emerald-500 text-white border border-emerald-400' : 'bg-white/90 text-emerald-600 border border-white hover:bg-emerald-50 hover:-translate-y-0.5'}`}
@@ -129,7 +114,7 @@ export const MapPage = () => {
               {/* Tambahkan event klik untuk otomatis terbang ke kordinat */}
               <div
                 onClick={() => setFocusLocation([ci.lat, ci.lng])}
-                className="flex items-start gap-3 p-3 rounded-xl hover:bg-stone-50 transition-colors cursor-pointer border border-transparent hover:border-stone-100"
+                className="flex items-start gap-3 p-3 hover:bg-stone-50 transition-colors cursor-pointer border border-transparent hover:border-stone-100"
               >
                 <div className="h-10 w-10 rounded-xl bg-teal/10 flex items-center justify-center shrink-0 mt-0.5">
                   <Scan size={16} className="text-teal" />
