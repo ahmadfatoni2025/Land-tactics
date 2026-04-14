@@ -448,7 +448,7 @@ export const ScannerPage = () => {
   );
 };
 
-function setFileScanError(arg0: null) {
+function setFileScanError(_arg0: null) {
   throw new Error('Function not implemented.');
 }
 
