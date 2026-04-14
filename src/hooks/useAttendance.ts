@@ -7,77 +7,111 @@ export interface AssetData {
   barcode_id: string;
   lat?: number;
   lng?: number;
-  photo_file: File;
+  accuracy?: number; // Akurasi GPS
+  photo_file: File; // Foto Overview
+  photo_detail?: File; // Foto Close-up
   asset_name?: string;
   category?: string;
   condition?: string;
   assigned_to?: string;
   notes?: string;
   address?: string;
+  // Professional Monitoring Fields
+  tinggi_tanaman?: number;
+  diameter_batang?: number;
+  jumlah_daun?: number;
+  lebar_kanopi?: number;
+  jumlah_bunga_buah?: number;
+  fase_pertumbuhan?: string;
+  warna_daun?: string;
+  status_hama?: string;
+  kelembapan_tanah?: string;
+  kondisi_gulma?: string;
+  ph_tanah?: number;
+  tindakan_diambil?: string[]; // Array of strings
 }
 
 export const useAttendance = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /**
-   * Fungsi tunggal untuk menyimpan data aset / check-in.
-   * Mendukung data dasar (Scanner) maupun data detail (Generate QR).
-   */
   const saveAsset = async (data: AssetData) => {
     setLoading(true);
     setError(null);
 
     try {
-      // 1. Pastikan bucket storage 'photos' sudah ada
       await ensureBucketExists();
 
-      // 2. Kompres Foto (Penting untuk mempercepat upload di koneksi seluler)
-      const compressedFile = await compressImage(data.photo_file, 1200, 0.6);
-      
-      const ext = data.photo_file.name.split('.').pop() || 'jpg';
-      const fileName = `assets/${data.barcode_id}-${Date.now()}.${ext}`;
-      
-      const { error: uploadError } = await supabase.storage
+      // 1. Upload Overview Photo
+      const compressedOverview = await compressImage(data.photo_file, 1200, 0.6);
+      const extOverview = data.photo_file.name.split('.').pop() || 'jpg';
+      const fileOverview = `assets/${data.barcode_id}-${Date.now()}-overview.${extOverview}`;
+
+      const { error: uploadError1 } = await supabase.storage
         .from('photos')
-        .upload(fileName, compressedFile, {
-          cacheControl: '3600',
-          upsert: false
-        });
+        .upload(fileOverview, compressedOverview);
+      if (uploadError1) throw uploadError1;
 
-      if (uploadError) throw uploadError;
-
-      // 3. Ambil Public URL
-      const { data: { publicUrl } } = supabase.storage
+      const { data: { publicUrl: urlOverview } } = supabase.storage
         .from('photos')
-        .getPublicUrl(fileName);
+        .getPublicUrl(fileOverview);
 
-      // 4. Simpan ke Database (Tabel check_ins)
-      // Catatan: Jika kolom tambahan belum ada di DB, data ini tetap aman (Supabase akan mengabaikan kolom yang tidak ada)
-      // Namun sangat direkomendasikan menjalankan SQL setup yang baru untuk menambah kolom metadata.
+      // 2. Upload Detail Photo (Optional)
+      let urlDetail = null;
+      if (data.photo_detail) {
+        const compressedDetail = await compressImage(data.photo_detail, 1200, 0.6);
+        const extDetail = data.photo_detail.name.split('.').pop() || 'jpg';
+        const fileDetail = `assets/${data.barcode_id}-${Date.now()}-detail.${extDetail}`;
+
+        const { error: uploadError2 } = await supabase.storage
+          .from('photos')
+          .upload(fileDetail, compressedDetail);
+        if (uploadError2) throw uploadError2;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('photos')
+          .getPublicUrl(fileDetail);
+        urlDetail = publicUrl;
+      }
+
+      // 3. Save to check_ins table
       const { error: dbError } = await supabase
         .from('check_ins')
         .insert({
           barcode_id: data.barcode_id,
           lat: data.lat,
           lng: data.lng,
-          photo_url: publicUrl,
-          // Kolom metadata tambahan (Opsional)
+          accuracy_gps: data.accuracy,
+          photo_url: urlOverview,
+          photo_detail_url: urlDetail,
           asset_name: data.asset_name,
           category: data.category,
           condition: data.condition,
-          assigned_to: data.assigned_to,
           notes: data.notes,
-          address: data.address
+          address: data.address,
+          // New structured fields
+          tinggi_tanaman: data.tinggi_tanaman,
+          diameter_batang: data.diameter_batang,
+          jumlah_daun: data.jumlah_daun,
+          lebar_kanopi: data.lebar_kanopi,
+          jumlah_bunga_buah: data.jumlah_bunga_buah,
+          fase_pertumbuhan: data.fase_pertumbuhan,
+          warna_daun: data.warna_daun,
+          status_hama: data.status_hama,
+          kelembapan_tanah: data.kelembapan_tanah,
+          kondisi_gulma: data.kondisi_gulma,
+          ph_tanah: data.ph_tanah,
+          tindakan: data.tindakan_diambil
         });
 
       if (dbError) throw dbError;
 
-      return { success: true, publicUrl };
+      return { success: true, urlOverview };
     } catch (err: any) {
       console.error('Operation failed:', err);
-      setError(err.message || 'Terjadi kesalahan sistem');
-      return { success: false };
+      const msg = err.message || 'Terjadi kesalahan sistem';
+      setError(msg);
+      return { success: false, error: msg };
     } finally {
       setLoading(false);
     }

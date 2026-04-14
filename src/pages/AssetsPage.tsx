@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAttendance } from '../hooks/useAttendance';
 import {
   Search, Download, Calendar, BarChart2,
-  Loader2, Edit2, Trash2, X, ChevronLeft, ChevronRight, ChevronDown
+  Loader2, Edit2, Trash2, X, ChevronLeft, ChevronRight, ChevronDown,
+  Sprout, AlertTriangle
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -15,9 +16,24 @@ interface AssetRecord {
   address?: string;
   lat: number;
   lng: number;
+  accuracy_gps?: number;
   photo_url: string;
+  photo_detail_url?: string;
   condition?: string;
   created_at: string;
+  // Professional Fields
+  tinggi_tanaman?: number;
+  diameter_batang?: number;
+  jumlah_daun?: number;
+  lebar_kanopi?: number;
+  jumlah_bunga_buah?: number;
+  fase_pertumbuhan?: string;
+  warna_daun?: string;
+  status_hama?: string;
+  kelembapan_tanah?: string;
+  kondisi_gulma?: string;
+  ph_tanah?: number;
+  tindakan?: string[];
 }
 
 export const AssetsPage = () => {
@@ -124,8 +140,8 @@ export const AssetsPage = () => {
   const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="min-h-screen bg-[#f8faf9]">
-      <div className="max-w-7xl mx-auto px-6 py-10">
+    <div className="w-full min-w-7xl min-h-screen bg-[#f8faf9]">
+      <div className="max-w-[1600px] mx-auto px-6 py-10">
 
         {/* Header Title Section */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
@@ -509,34 +525,69 @@ export const AssetsPage = () => {
                     </div>
                   </section>
 
-                  {/* Section: Growth Metrics */}
+                  {/* Section: Professional Agronomic Metrics */}
                   <section className="space-y-6">
                     <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-                      <h3 className="text-[13px] font-bold text-gray-900 uppercase tracking-widest">Growth Metrics</h3>
-                      <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded tracking-widest uppercase">Latest Reading</span>
+                      <h3 className="text-[13px] font-bold text-gray-900 uppercase tracking-widest">Growth & Health Intel</h3>
+                      <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded tracking-widest uppercase italic">Field Sync Data</span>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {viewingAsset.notes?.split(',').map((metric, i) => {
-                        const [label, val] = metric.includes(':') ? metric.split(':') : [metric, 'Measured'];
-                        return (
-                          <div key={i} className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:border-emerald-200 transition-colors">
-                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mb-1">{label.trim()}</p>
-                            <p className="text-sm font-black text-gray-900 italic tracking-tight">{val?.trim() || '-'}</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {[
+                        { l: 'Tinggi', v: `${viewingAsset.tinggi_tanaman || 0} cm`, i: <Sprout size={14}/> },
+                        { l: 'Batang', v: `${viewingAsset.diameter_batang || 0} mm`, i: <Sprout size={14}/> },
+                        { l: 'Daun', v: `${viewingAsset.jumlah_daun || 0} Helai`, i: <Sprout size={14}/> },
+                        { l: 'Kanopi', v: `${viewingAsset.lebar_kanopi || 0} cm`, i: <Sprout size={14}/> },
+                        { l: 'Fase', v: viewingAsset.fase_pertumbuhan || '-', i: <Sprout size={14}/> },
+                        { l: 'Hama', v: viewingAsset.status_hama || '-', i: <AlertTriangle size={14}/> },
+                        { l: 'pH Tanah', v: viewingAsset.ph_tanah || 'N/A', i: <Sprout size={14}/> },
+                        { l: 'Kelembapan', v: viewingAsset.kelembapan_tanah || 'N/A', i: <Sprout size={14}/> }
+                      ].map((m, i) => (
+                        <div key={i} className="p-4 bg-gray-50/50 border border-gray-100 rounded-2xl flex flex-col gap-1 transition-all hover:bg-white hover:shadow-md">
+                          <div className="flex items-center gap-2 text-gray-400 capitalize">
+                            {m.i}
+                            <span className="text-[9px] font-bold uppercase tracking-wider">{m.l}</span>
                           </div>
-                        );
-                      }) || (
-                          <p className="text-xs text-gray-400 col-span-full italic py-4">No specific metrics recorded for this batch.</p>
-                        )}
+                          <p className="text-sm font-black text-gray-900 uppercase tracking-tight italic">{m.v}</p>
+                        </div>
+                      ))}
                     </div>
+
+                    {viewingAsset.tindakan && viewingAsset.tindakan.length > 0 && (
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Intervensi Terakhir</label>
+                        <div className="flex flex-wrap gap-2">
+                          {viewingAsset.tindakan.map((t, i) => (
+                            <span key={i} className="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded-full text-[10px] font-black uppercase">
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {viewingAsset.notes && (
+                      <div className="p-5 bg-stone-50 rounded-2xl border border-stone-100">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Observations</label>
+                        <p className="text-sm text-stone-600 leading-relaxed italic">"{viewingAsset.notes}"</p>
+                      </div>
+                    )}
                   </section>
 
-                  {/* Section: Image Evidence */}
+                  {/* Section: Visual Evidence (Double) */}
                   <section className="space-y-4">
-                    <h3 className="text-[13px] font-bold text-gray-900 uppercase tracking-widest border-b border-gray-100 pb-2">Field Documentation</h3>
-                    <div className="aspect-video w-full rounded-2xl overflow-hidden bg-gray-100 border border-gray-100 relative group">
-                      <img src={viewingAsset.photo_url} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="Evidence" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                    <h3 className="text-[13px] font-bold text-gray-900 uppercase tracking-widest border-b border-gray-100 pb-2">Full Documentation</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                       <div className="aspect-video w-full rounded-2xl overflow-hidden bg-gray-100 border border-gray-100 relative group">
+                        <img src={viewingAsset.photo_url} className="w-full h-full object-cover" alt="Overview" />
+                        <div className="absolute top-4 left-4 px-3 py-1 bg-black/50 backdrop-blur-md text-white text-[9px] font-black uppercase rounded-lg">Overview Photo</div>
+                      </div>
+                      {viewingAsset.photo_detail_url && (
+                        <div className="aspect-video w-full rounded-2xl overflow-hidden bg-gray-100 border border-gray-100 relative group">
+                          <img src={viewingAsset.photo_detail_url} className="w-full h-full object-cover" alt="Detail" />
+                           <div className="absolute top-4 left-4 px-3 py-1 bg-black/50 backdrop-blur-md text-white text-[9px] font-black uppercase rounded-lg">Detail / Close-up</div>
+                        </div>
+                      )}
                     </div>
                   </section>
                 </div>
@@ -585,13 +636,13 @@ export const AssetsPage = () => {
                                   </span>
                                 </div>
 
-                                {physics && (
+                                {(entry.tinggi_tanaman || entry.jumlah_daun) && (
                                   <div className="flex gap-2">
                                     <div className="bg-white border border-gray-100 rounded-lg px-2 py-1 text-[9px] font-black">
-                                      <span className="text-gray-400">T:</span> {physics.t}cm
+                                      <span className="text-gray-400">T:</span> {entry.tinggi_tanaman}cm
                                     </div>
                                     <div className="bg-white border border-gray-100 rounded-lg px-2 py-1 text-[9px] font-black">
-                                      <span className="text-gray-400">D:</span> {physics.d}qty
+                                      <span className="text-gray-400">D:</span> {entry.jumlah_daun} Helai
                                     </div>
                                   </div>
                                 )}

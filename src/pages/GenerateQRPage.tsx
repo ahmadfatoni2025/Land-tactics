@@ -46,7 +46,7 @@ export const GenerateQRPage = () => {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
   const [locLoading, setLocLoading] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
 
@@ -58,20 +58,24 @@ export const GenerateQRPage = () => {
   };
 
   const updateField = (field: keyof PlantForm, value: any) => setForm(f => ({ ...f, [field]: value }));
-  
+
   // Ambil lokasi saat ini
   const refreshLocation = useCallback(() => {
     setLocLoading(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setCoords({ 
+          lat: pos.coords.latitude, 
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy
+        });
         setLocLoading(false);
       },
       (err) => {
         console.error('Location error:', err);
         setLocLoading(false);
       },
-      { enableHighAccuracy: true }
+      { enableHighAccuracy: true, timeout: 10000 }
     );
   }, []);
 
@@ -118,6 +122,7 @@ export const GenerateQRPage = () => {
       photo_file: photoFile,
       lat: coords?.lat || 0,
       lng: coords?.lng || 0,
+      accuracy: coords?.accuracy,
       asset_name: form.plantName,
       category: form.commodity,
       condition: form.growthStatus,
@@ -129,8 +134,8 @@ export const GenerateQRPage = () => {
     const result = await saveAsset(assetData);
     if (result.success) {
       setSuccess(true);
-      // Remove auto-navigate, stay to let user see/print QR
-      // setTimeout(() => navigate('/assets'), 2000);
+    } else {
+      alert('Gagal Registrasi: ' + (result.error || 'Terjadi kesalahan sistem.'));
     }
   };
 
@@ -140,8 +145,8 @@ export const GenerateQRPage = () => {
 
   if (success) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12 text-center animate-in fade-in zoom-in-95 duration-500">
-        <div className="bg-white rounded-[40px] border border-stone-200 shadow-2xl overflow-hidden">
+      <div className="w-full min-h-screen bg-[#f8faf9] flex items-center justify-center p-6 md:p-10">
+        <div className="max-w-4xl w-full text-center animate-in fade-in zoom-in-95 duration-500">
           <div className="bg-emerald-600 p-8 md:p-12 text-white flex flex-col items-center">
             <div className="h-20 w-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mb-6">
               <CheckCircle2 size={40} className="text-white" />
@@ -201,27 +206,42 @@ export const GenerateQRPage = () => {
   }
 
   return (
-    <div className="w-full min-h-screen bg-cream">
-      {/* Container with top margin to avoid overlap with sticky navbar if any layout issue occurs */}
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 space-y-6">
+    <div className="w-full min-h-screen bg-[#f8faf9]">
+      <div className="max-w-[1600px] mx-auto px-6 py-10">
+        
+        {/* Header Title Section - Consistent with AssetsPage & ScannerPage */}
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-10">
+          <div>
+            <p className="text-xs font-bold tracking-widest text-[#2d5a27] uppercase mb-2">
+              REGISTRATION MODULE
+            </p>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">Batch Registration</h1>
+            <p className="text-[15px] text-gray-500 max-w-xl leading-relaxed">
+              Initialize new agricultural units with precise geotagging and instant QR generation for end-to-end traceability.
+            </p>
+          </div>
 
-        {/* Header Breadcrumb */}
-        <div className="flex items-center gap-2 text-[11px] md:text-sm text-stone-400 mb-2 ml-1">
-          <span onClick={() => navigate('/assets')} className="cursor-pointer hover:text-teal font-medium transition-colors uppercase tracking-wider">Monitoring</span>
-          <ChevronRight size={12} className="opacity-50" />
-          <span className="text-stone-900 font-bold uppercase tracking-wider">Pendaftaran Batch Tanaman</span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/assets')}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-800 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-all shadow-sm"
+            >
+              <RotateCcw size={18} className="text-gray-600" />
+              Discard Changes
+            </button>
+          </div>
         </div>
 
         {/* Main Form Card */}
-        <div className="bg-white rounded-3xl border border-stone-200/60 shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-700">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
           {/* Form Header */}
-          <div className="p-8 md:p-12 pb-6 md:pb-8 flex items-start gap-5 md:gap-7 bg-gradient-to-br from-white to-emerald-50/30">
-            <div className="h-12 w-12 md:h-16 md:w-16 shrink-0 rounded-2xl md:rounded-[24px] bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-inner">
-              <Sprout size={28} className="md:w-8 md:h-8" />
+          <div className="p-10 md:p-14 pb-0 flex items-start gap-7">
+            <div className="h-16 w-16 shrink-0 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner">
+              <Sprout size={32} />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-black text-[#111827] tracking-tight italic">Registrasi Lahan & Tanaman</h1>
-              <p className="text-gray-500 text-sm md:text-base mt-1 leading-tight">Digitalisasi unit agrikultur dengan geotagging dan QR batch secara instan.</p>
+              <h2 className="text-3xl font-black text-gray-900 tracking-tighter italic uppercase leading-none">Registration Form</h2>
+              <p className="text-gray-400 text-xs font-bold mt-3 uppercase tracking-widest">Digitalize agricultural units with precision telemetry</p>
             </div>
           </div>
 
@@ -332,7 +352,7 @@ export const GenerateQRPage = () => {
                     />
                     <MapPin className="absolute right-5 md:right-6 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" size={20} />
                   </div>
-                  <button 
+                  <button
                     onClick={refreshLocation}
                     disabled={locLoading}
                     className="h-[56px] md:h-auto px-6 bg-white border-2 border-stone-100 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase text-teal hover:border-teal/30 transition-all shadow-sm active:scale-95"
@@ -371,8 +391,8 @@ export const GenerateQRPage = () => {
               {/* Upload Section */}
               <div className="space-y-4">
                 <label className="text-xs md:text-sm font-black text-[#111827] uppercase tracking-widest opacity-70 flex items-center gap-2">
-                   Foto Dokumentasi Tanaman
-                   <span className="px-3 py-1 bg-red-100 text-red-600 text-[9px] font-black rounded-full uppercase tracking-widest">Wajib</span>
+                  Foto Dokumentasi Tanaman
+                  <span className="px-3 py-1 bg-red-100 text-red-600 text-[9px] font-black rounded-full uppercase tracking-widest">Wajib</span>
                 </label>
                 <label className="relative block border-2 border-dashed border-emerald-100 rounded-[32px] md:rounded-[40px] p-8 md:p-14 cursor-pointer bg-[#FBFDFB] hover:bg-emerald-50 transition-all group overflow-hidden text-center shadow-inner">
                   <input type="file" accept="image/*" capture="environment" onChange={handlePhoto} className="hidden" />

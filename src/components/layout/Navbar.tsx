@@ -80,8 +80,8 @@ export const Navbar = () => {
       </div>
 
       {/* --- MOBILE BOTTOM NAVIGATION --- */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-6 pb-6 pt-2">
-        <div className="bg-white/90 backdrop-blur-xl border border-gray-100 rounded-[24px] shadow-[0_10px_40px_rgba(0,0,0,0.1)] px-2 py-2">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 pt-2 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+        <div className="bg-white/95 backdrop-blur-xl border-t border-gray-100 rounded-t-[24px] px-2 py-2">
           <div className="flex items-center justify-around">
             {navItems.map((item) => {
               const Icon = item.icon;
