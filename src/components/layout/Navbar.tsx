@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
-  Search, Bell, HelpCircle, LayoutDashboard,
-  Map as MapIcon, Scan, Boxes, Plus, MoreHorizontal
+  Search, Bell, LayoutDashboard,
+  Map as MapIcon, Scan, Boxes, Plus
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 

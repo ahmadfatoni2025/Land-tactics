@@ -37,7 +37,7 @@ const initialForm: PlantForm = {
 
 const commodities = ['Tanaman Pangan', 'Hortikultura', 'Perkebunan', 'Tanaman Hias', 'Tanaman Obat', 'Sarana Produksi (Saprodi)', 'Alat & Mesin (Alsintan)'];
 
-import { Leaf, Sprout, Map as MapIcon } from 'lucide-react';
+import { Leaf, Sprout } from 'lucide-react';
 
 export const GenerateQRPage = () => {
   const navigate = useNavigate();

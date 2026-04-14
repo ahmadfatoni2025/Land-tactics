@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { MapView, type CheckIn } from '../components/MapView';
 import { useAttendance } from '../hooks/useAttendance';
 import {
-  Search, Filter, Scan, MapPin, ShieldCheck, Clock, Map, Mountain,
-  Globe, TreePine, Plus, Minus, ChevronLeft, ChevronRight,
-  Navigation, Sprout, Leaf, Trees
+  Search, Filter, MapPin, Clock,
+  TreePine, Plus, Minus, ChevronLeft, ChevronRight,
+  Navigation
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 

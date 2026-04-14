@@ -14,8 +14,7 @@ import {
   Sparkles,
   Leaf,
   AlertTriangle,
-  Zap,
-  ChevronLeft
+  Zap
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -26,8 +25,6 @@ export const ScannerPage = () => {
   const [scannedId, setScannedId] = useState<string | null>(null);
   const [assetName, setAssetName] = useState<string>('');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [gpsError, setGpsError] = useState<string | null>(null);
-  const [status, setStatus] = useState<'idle' | 'scanned' | 'submitting' | 'success' | 'error'>('idle');
 
   // Field untuk perkembangan tanaman (Expanded from task.md)
   const [tinggiTanaman, setTinggiTanaman] = useState('');
@@ -52,11 +49,10 @@ export const ScannerPage = () => {
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const requestLocation = useCallback(() => {
-    setGpsError(null);
-    if (!navigator.geolocation) return setGpsError('Geolokasi tidak didukung');
+    if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => setGpsError('Gagal akses GPS'),
+      () => {},
       { enableHighAccuracy: true, timeout: 15000 }
     );
   }, []);
@@ -72,7 +68,6 @@ export const ScannerPage = () => {
 
     setScannedId(finalId);
     setScannerActive(false);
-    setStatus('scanned');
     setFileScanError(null);
     requestLocation();
   }, [requestLocation]);
@@ -120,7 +115,6 @@ export const ScannerPage = () => {
     if (!scannedId || !coords || !photoFile) {
       return alert('Foto Bukti Perkembangan Wajib! Ambil foto tanaman untuk memvalidasi laporan ini.');
     }
-    setStatus('submitting');
 
     // Construct dynamic description
     const reportData = {
@@ -147,15 +141,12 @@ export const ScannerPage = () => {
     });
 
     if (result.success) {
-      setStatus('success');
       setTimeout(() => navigate('/assets'), 1500);
-    } else {
-      setStatus('error');
     }
   };
 
   const handleReset = () => {
-    setScannedId(null); setAssetName(''); setCoords(null); setStatus('idle');
+    setScannedId(null); setAssetName(''); setCoords(null);
     setNotes(''); setTinggiTanaman(''); setJumlahDaun(''); setLebarDaun('');
     setPenyiraman('sudah'); setPemberianPupuk('tidak'); setJenisPupuk('');
     setPhotoFile(null); setPhotoPreview(null); setScannerActive(false);

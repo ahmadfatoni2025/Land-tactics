@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAttendance } from '../hooks/useAttendance';
 import {
-  Search, Download, Calendar, MapPin, AlertTriangle, BarChart2,
-  Loader2, MoreHorizontal, Edit2, Trash2, X, ChevronLeft, ChevronRight, ChevronDown
+  Search, Download, Calendar, BarChart2,
+  Loader2, Edit2, Trash2, X, ChevronLeft, ChevronRight, ChevronDown
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -122,12 +122,6 @@ export const AssetsPage = () => {
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
   const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  const stats = {
-    total: checkIns.length,
-    active: checkIns.filter(c => ['subur', 'sehat', 'normal'].includes(c.condition?.toLowerCase() || '')).length,
-    critical: checkIns.filter(c => ['layu', 'mati'].includes(c.condition?.toLowerCase() || '')).length,
-  };
 
   return (
     <div className="min-h-screen bg-[#f8faf9]">
