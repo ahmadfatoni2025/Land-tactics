@@ -35,14 +35,10 @@ export const ScannerPage = () => {
   const [penyiraman, setPenyiraman] = useState('sudah');
   const [pemberianPupuk, setPemberianPupuk] = useState('tidak');
   const [jenisPupuk, setJenisPupuk] = useState('');
-  const [pencahayaan, setPencahayaan] = useState('terang_tidak_langsung');
-
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [scannedCategory, setScannedCategory] = useState<string>('');
   const [manualAddress, setManualAddress] = useState<string>('');
-  const [isFetchingData, setIsFetchingData] = useState(false);
-  const [fileScanError, setFileScanError] = useState<string | null>(null);
 
   const { saveAsset, getAssetByBarcode, loading } = useAttendance();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -76,14 +72,12 @@ export const ScannerPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       if (!scannedId) return;
-      setIsFetchingData(true);
       const asset = await getAssetByBarcode(scannedId);
       if (asset) {
         setAssetName(asset.asset_name || '');
         setScannedCategory(asset.category || '');
         if (asset.address) setManualAddress(asset.address);
       }
-      setIsFetchingData(false);
     };
     fetchData();
   }, [scannedId, getAssetByBarcode]);
@@ -91,13 +85,12 @@ export const ScannerPage = () => {
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setFileScanError(null);
     const html5QrCode = new Html5Qrcode("qr-file-detector");
     try {
       const decodedText = await html5QrCode.scanFile(file, true);
       handleScan(decodedText);
     } catch (err) {
-      setFileScanError("QR Code tidak terbaca. Pastikan gambar jelas.");
+      alert("QR Code tidak terbaca. Pastikan gambar jelas.");
     }
   };
 
@@ -123,7 +116,7 @@ export const ScannerPage = () => {
       lebar: lebarDaun,
       penyiraman,
       pupuk: pemberianPupuk === 'ya' ? jenisPupuk : 'tidak',
-      cahaya: pencahayaan
+      cahaya: 'terang_tidak_langsung'
     };
 
     const combinedNotes = `Data Fisik: T:${reportData.tinggi} D:${reportData.daun} L:${reportData.lebar} | Rawat: Siram:${reportData.penyiraman} Pupuk:${reportData.pupuk} Cahaya:${reportData.cahaya} | Obs: ${notes}`;
