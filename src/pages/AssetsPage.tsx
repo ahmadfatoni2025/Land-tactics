@@ -140,7 +140,7 @@ export const AssetsPage = () => {
   const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="w-full min-w-7xl min-h-screen bg-[#f8faf9]">
+    <div className="w-full min-h-screen bg-[#f8faf9]">
       <div className="max-w-[1600px] mx-auto px-6 py-10">
 
         {/* Header Title Section */}
