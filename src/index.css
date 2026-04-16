@@ -14,7 +14,7 @@
 
 @layer base {
   body {
-    background-color: var(--color-cream);
+    background-color: #f8faf9;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -79,15 +79,33 @@
 }
 
 @keyframes scan-laser {
-  0% { top: 0; }
-  50% { top: 100%; }
-  100% { top: 0; }
+  0% {
+    top: 0;
+  }
+
+  50% {
+    top: 100%;
+  }
+
+  100% {
+    top: 0;
+  }
 }
 
 @keyframes scan-slow {
-  0% { top: 0; opacity: 0.1; }
-  50% { opacity: 0.8; }
-  100% { top: 100%; opacity: 0.1; }
+  0% {
+    top: 0;
+    opacity: 0.1;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
+
+  100% {
+    top: 100%;
+    opacity: 0.1;
+  }
 }
 
 .animate-scan-laser {
@@ -104,6 +122,7 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -123,6 +142,76 @@
   width: auto !important;
 }
 
-.leaflet-popup-tip-container {
-  display: none;
+/* Scanner Animations */
+@keyframes scanLine {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
 }
+
+@keyframes scanLineDelayed {
+  0% {
+    transform: translateY(-20%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(120%);
+    opacity: 0;
+  }
+}
+
+@keyframes scanSuccess {
+  0% {
+    transform: scale(0.95);
+    opacity: 0;
+    border-color: rgba(52, 211, 153, 0);
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+    border-color: rgba(52, 211, 153, 0.8);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+    border-color: rgba(52, 211, 153, 0.8);
+  }
+}
+
+.animate-scan-line {
+  animation: scanLine 2s ease-in-out infinite;
+}
+
+.animate-scan-line-delayed {
+  animation: scanLineDelayed 2s ease-in-out infinite 0.6s;
+}
+
+.animate-scan-success {
+  animation: scanSuccess 0.5s ease-out forwards;
+}
+
+.active\:scale-98:active {
+  transform: scale(0.98);
+}
+
+.border-t-3 { border-top-width: 3px; }
+.border-r-3 { border-right-width: 3px; }
+.border-b-3 { border-bottom-width: 3px; }
+.border-l-3 { border-left-width: 3px; }

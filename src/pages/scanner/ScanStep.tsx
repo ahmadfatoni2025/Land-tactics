@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { X, Upload, Camera, ChevronLeft, Zap, Sparkles } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { Link } from 'react-router-dom';
+
+import { X, Upload, Camera, ChevronLeft, Loader2 } from 'lucide-react';
 
 interface ScanStepProps {
   onResult: (text: string) => void;
@@ -13,45 +14,81 @@ interface ScanStepProps {
 export const ScanStep = ({ onResult, onFileSelect, onClose, error }: ScanStepProps) => {
   const [isActive, setIsActive] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanSuccess, setScanSuccess] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const lastScanRef = useRef<string | null>(null);
+  const scanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let isMounted = true;
 
     const initScanner = async () => {
-      // Tunggu DOM benar-benar siap dan transisi selesai
       await new Promise(r => setTimeout(r, 400));
       if (!isMounted) return;
 
-      const element = document.getElementById("immersive-qr-reader");
+      const element = document.getElementById("qr-reader");
       if (!element) {
-        if (isMounted) setInitError("Sistem pemindai tidak ditemukan di DOM.");
+        if (isMounted) setInitError("Scanner tidak tersedia");
         return;
       }
 
       try {
-        const scanner = new Html5Qrcode("immersive-qr-reader");
+        const scanner = new Html5Qrcode("qr-reader");
         scannerRef.current = scanner;
+
+        // Responsive QR box size based on screen
+        const isDesktop = window.innerWidth >= 1024;
+        const qrBoxSize = isDesktop ? 300 : 250;
 
         await scanner.start(
           { facingMode: "environment" },
           {
-            fps: 25,
-            qrbox: (viewfinderWidth, viewfinderHeight) => {
-              const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-              const size = Math.floor(minEdge * 0.7);
-              return { width: size, height: size };
-            },
-            aspectRatio: window.innerWidth / window.innerHeight,
+            fps: 10,
+            qrbox: { width: qrBoxSize, height: qrBoxSize },
+            aspectRatio: 1,
+            disableFlip: false,
           },
           (decodedText) => {
-            if (isMounted) {
-              scanner.stop().then(() => {
-                onResult(decodedText);
-              }).catch(() => onResult(decodedText));
+            // Prevent double scan
+            if (!isMounted || isScanning || scanSuccess) return;
+
+            // Check if same QR code scanned within 3 seconds
+            if (lastScanRef.current === decodedText) return;
+
+            lastScanRef.current = decodedText;
+            setIsScanning(true);
+            setScanSuccess(true);
+
+            // Clear any existing timeout
+            if (scanTimeoutRef.current) {
+              clearTimeout(scanTimeoutRef.current);
             }
+
+            // Stop scanner after successful scan
+            scanner.stop()
+              .then(() => {
+                // Small delay before calling onResult for better UX
+                setTimeout(() => {
+                  if (isMounted) {
+                    onResult(decodedText);
+                  }
+                }, 300);
+              })
+              .catch(() => {
+                setTimeout(() => {
+                  if (isMounted) {
+                    onResult(decodedText);
+                  }
+                }, 300);
+              });
           },
-          () => { }
+          (errorMessage) => {
+            // Silent error handling - ignore scan errors
+            if (import.meta.env.DEV) {
+              console.debug('Scan error:', errorMessage);
+            }
+          }
         );
 
         if (isMounted) {
@@ -61,7 +98,7 @@ export const ScanStep = ({ onResult, onFileSelect, onClose, error }: ScanStepPro
       } catch (err: any) {
         console.error("Scanner failed", err);
         if (isMounted) {
-          setInitError(`Sistem Gagal: ${err.message || 'Cek izin kamera'}`);
+          setInitError("Tidak dapat mengakses kamera. Pastikan izin kamera diberikan.");
         }
       }
     };
@@ -70,114 +107,162 @@ export const ScanStep = ({ onResult, onFileSelect, onClose, error }: ScanStepPro
 
     return () => {
       isMounted = false;
+      if (scanTimeoutRef.current) {
+        clearTimeout(scanTimeoutRef.current);
+      }
       if (scannerRef.current) {
         scannerRef.current.stop().catch(() => { });
       }
     };
-  }, [onResult]);
+  }, [onResult, isScanning, scanSuccess]);
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black animate-in fade-in duration-500 overflow-hidden">
-      {/* Background Camera Layer */}
-      <div id="immersive-qr-reader" className="absolute inset-0 w-full h-full object-cover"></div>
+    <div className="fixed inset-0 z-50 bg-black">
+      {/* Camera View */}
+      <div id="qr-reader" className="absolute inset-0 w-full h-full object-cover" />
 
-      {/* Modern UI Overlay */}
-      <div className="absolute inset-0 z-10 flex flex-col justify-between p-6 md:p-10 pointer-events-none">
+      {/* Overlay Gradient */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/50" />
 
-        {/* Top Navigation */}
-        <div className="flex justify-between items-start pointer-events-auto">
-          <button
-            onClick={onClose}
-            className="flex items-center gap-3 px-6 py-3 bg-black/40 backdrop-blur-2xl rounded-2xl text-white border border-white/10 hover:bg-black/60 transition-all font-bold text-xs uppercase tracking-widest"
+      {/* Header - Responsive */}
+      <div className="absolute top-0 left-0 right-0 p-4 md:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <Link
+            to="/"
+            className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 bg-black/50 backdrop-blur-md rounded-xl text-white text-sm font-medium hover:bg-black/70 transition-all active:scale-95"
           >
             <ChevronLeft size={18} />
-            / Pemindai
-          </button>
+            <span className="hidden sm:inline">Kembali</span>
+          </Link>
 
-          <div className="flex gap-2">
-            <div className="p-3 bg-white/10 backdrop-blur-2xl rounded-2xl border border-white/10 text-emerald-400">
-              <Zap size={20} />
-            </div>
-            <div className="p-3 bg-white/10 backdrop-blur-2xl rounded-2xl border border-white/10 text-white/50">
-              <Camera size={20} />
-            </div>
-          </div>
-        </div>
-
-        {/* Center Target Area */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          {/* Viewport Brackets */}
-          <div className="relative w-[70vw] h-[70vw] max-w-[320px] max-h-[320px]">
-            {/* 4 Corner Accents */}
-            <div className="absolute top-0 left-0 w-16 h-16 border-t-[6px] border-l-[6px] border-emerald-400 rounded-tl-[40px] shadow-[0_0_20px_rgba(52,211,153,0.5)]"></div>
-            <div className="absolute top-0 right-0 w-16 h-16 border-t-[6px] border-r-[6px] border-emerald-400 rounded-tr-[40px] shadow-[0_0_20px_rgba(52,211,153,0.5)]"></div>
-            <div className="absolute bottom-0 left-0 w-16 h-16 border-b-[6px] border-l-[6px] border-emerald-400 rounded-bl-[40px] shadow-[0_0_20px_rgba(52,211,153,0.5)]"></div>
-            <div className="absolute bottom-0 right-0 w-16 h-16 border-b-[6px] border-r-[6px] border-emerald-400 rounded-br-[40px] shadow-[0_0_20px_rgba(52,211,153,0.5)]"></div>
-
-            {/* Animated Inner Scanner Line */}
-            {isActive && (
-              <div className="absolute inset-x-0 h-[2px] bg-emerald-400 shadow-[0_0_30px_rgba(52,211,153,1)] animate-scan-slow"></div>
-            )}
-          </div>
-
-          <div className="mt-12 text-center">
-            <div className="flex items-center justify-center gap-3 mb-3">
-              <Sparkles className="text-emerald-400" size={16} />
-              <h2 className="text-xl font-black text-white uppercase italic tracking-tighter">Unit Identification</h2>
-            </div>
-            <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.3em] max-w-[240px] leading-relaxed">
-              Align the QR code within the perimeter for automated bio-data retrieval
-            </p>
-          </div>
-        </div>
-
-        {/* Bottom Actions */}
-        <div className="w-full flex flex-col items-center gap-10 pointer-events-auto">
-          {/* Gallery Picker */}
-          <label className="group flex items-center gap-4 px-10 py-5 bg-white rounded-[30px] text-stone-900 shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer hover:scale-105 transition-all active:scale-95">
-            <Upload size={20} className="text-indigo-600" />
-            <span className="font-black text-[11px] uppercase tracking-widest">Pilih Gambar Galeri</span>
-            <input type="file" accept="image/*" className="hidden" onChange={onFileSelect} />
-          </label>
-
-          {/* Mock Camera Trigger */}
-          <div className="w-20 h-20 rounded-full border-4 border-white/20 flex items-center justify-center">
-            <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-full border border-white/20"></div>
+          <div className="px-3 py-2 md:px-4 md:py-2.5 bg-black/50 backdrop-blur-md rounded-xl">
+            <Camera size={18} className="text-white/70" />
           </div>
         </div>
       </div>
 
-      {/* Error State Overlay */}
-      {(initError || error) && (
-        <div className="absolute inset-0 z-[110] bg-stone-950 flex flex-col items-center justify-center p-10 text-center">
-          <div className="w-20 h-20 bg-red-500/10 rounded-[35px] flex items-center justify-center text-red-500 mb-8 border border-red-500/20 shadow-2xl shadow-red-500/10">
-            <X size={40} />
+      {/* Scanning Frame - Responsive Size */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
+        <div className="relative">
+          {/* Frame Size Responsive */}
+          <div className="w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 lg:w-96 lg:h-96 relative">
+            {/* Corner Borders */}
+            <div className="absolute top-0 left-0 w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 border-t-3 border-l-3 border-white rounded-tl-xl" />
+            <div className="absolute top-0 right-0 w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 border-t-3 border-r-3 border-white rounded-tr-xl" />
+            <div className="absolute bottom-0 left-0 w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 border-b-3 border-l-3 border-white rounded-bl-xl" />
+            <div className="absolute bottom-0 right-0 w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 border-b-3 border-r-3 border-white rounded-br-xl" />
+
+            {/* Scanning Line Animation - Improved */}
+            {isActive && !scanSuccess && (
+              <>
+                <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-lg shadow-emerald-400/50 animate-scan-line" />
+                <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-lg shadow-emerald-400/50 animate-scan-line-delayed" />
+              </>
+            )}
+
+            {/* Scan Success Animation */}
+            {scanSuccess && (
+              <div className="absolute inset-0 border-2 border-emerald-400 rounded-2xl animate-scan-success">
+                <div className="absolute inset-0 bg-emerald-400/20 animate-pulse rounded-2xl" />
+              </div>
+            )}
+
+            {/* Inner Glow Effect */}
+            <div className="absolute inset-0 border-2 border-white/10 rounded-2xl" />
+
+            {/* Corner Glow */}
+            <div className="absolute -inset-0.5 bg-white/5 rounded-2xl blur-sm -z-10" />
           </div>
-          <h3 className="text-2xl font-black text-white tracking-tight uppercase italic leading-none">Diagnostic Failure</h3>
-          <p className="text-gray-400 text-sm mt-4 max-w-[280px] leading-relaxed font-medium">
-            {initError || error || "Failed to initialize the optical payload system."}
+        </div>
+
+        {/* Instruction Text - Responsive with Scan Status */}
+        <div className="mt-6 md:mt-8 lg:mt-10 text-center px-4">
+          {scanSuccess ? (
+            <>
+              <h3 className="text-white text-base md:text-lg lg:text-xl font-semibold mb-2 animate-pulse">
+                ✓ Berhasil!
+              </h3>
+              <p className="text-emerald-400 text-xs md:text-sm">
+                Memproses data...
+              </p>
+            </>
+          ) : (
+            <>
+              <h3 className="text-white text-base md:text-lg lg:text-xl font-semibold mb-2">
+                Scan QR Code
+              </h3>
+              <p className="text-white/60 text-xs md:text-sm max-w-[280px] md:max-w-[320px] lg:max-w-[360px]">
+                Tempatkan QR code di dalam bingkai untuk memindai
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom Actions - Responsive */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 lg:p-8">
+        <div className="max-w-md mx-auto">
+          {/* Upload Button - Disabled while scanning */}
+          <label className={`w-full flex items-center justify-center gap-2 px-6 py-3 md:py-4 bg-white rounded-xl md:rounded-2xl text-gray-900 font-medium cursor-pointer transition-all shadow-lg ${isScanning ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100 active:scale-98'
+            }`}>
+            <Upload size={18} className="md:w-5 md:h-5" />
+            <span className="text-sm md:text-base">Pilih dari Galeri</span>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={onFileSelect}
+              disabled={isScanning}
+            />
+          </label>
+
+          {/* Hint Text */}
+          <p className="text-white/40 text-xs text-center mt-4">
+            Pastikan QR code terlihat jelas dan dalam kondisi baik
           </p>
-          <div className="flex gap-4 mt-12 w-full max-w-sm">
-            <button
-              onClick={onClose}
-              className="flex-1 py-4 bg-white/5 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest border border-white/10 hover:bg-white/10"
-            >
-              Batal
-            </button>
-            <button
-              onClick={() => window.location.reload()}
-              className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-600/20 active:scale-95"
-            >
-              Coba Lagi
-            </button>
+        </div>
+      </div>
+
+      {/* Error Dialog - Responsive */}
+      {(initError || error) && (
+        <div className="absolute inset-0 bg-black/95 flex items-center justify-center p-4 md:p-6 z-10">
+          <div className="bg-white rounded-2xl max-w-sm md:max-w-md w-full p-6 md:p-8 text-center">
+            <div className="w-14 h-14 md:w-16 md:h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6">
+              <X size={24} className="md:w-7 md:h-7 text-red-500" />
+            </div>
+            <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-2">
+              Gagal Memindai
+            </h3>
+            <p className="text-gray-500 text-sm md:text-base mb-6 md:mb-8">
+              {initError || error || "Terjadi kesalahan saat mengakses kamera"}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                className="flex-1 px-4 py-2.5 md:py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-all"
+              >
+                Tutup
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="flex-1 px-4 py-2.5 md:py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all"
+              >
+                Coba Lagi
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Aesthetic Metadata */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-white/5 backdrop-blur-md border border-white/10 rounded-full z-20 opacity-30">
-        <span className="text-[8px] font-black text-white uppercase tracking-[0.5em] italic">System v4.2.0 • GeoAgri Ops</span>
-      </div>
+      {/* Loading State */}
+      {!isActive && !initError && !error && (
+        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-10">
+          <div className="text-center">
+            <Loader2 size={40} className="text-white animate-spin mx-auto mb-4" />
+            <p className="text-white/60 text-sm">Mengaktifkan kamera...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

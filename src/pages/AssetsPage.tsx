@@ -608,14 +608,6 @@ export const AssetsPage = () => {
                           const { dateStr, timeStr } = formatDate(entry.created_at);
                           const status = getStatusDisplay(entry.condition);
 
-                          // Extract physical data from notes
-                          // Structure: Data Fisik: T:... D:... L:... | Rawat: ...
-                          const physicsMatch = entry.notes?.match(/T:([^ ]+) D:([^ ]+) L:([^ ]+)/);
-                          const physics = physicsMatch ? {
-                            t: physicsMatch[1],
-                            d: physicsMatch[2],
-                            l: physicsMatch[3]
-                          } : null;
 
                           return (
                             <div key={entry.id} className="relative pl-10 group/item">

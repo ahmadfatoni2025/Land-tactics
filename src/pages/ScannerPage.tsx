@@ -65,7 +65,12 @@ export const ScannerPage = () => {
     let finalId = text;
     try {
       const parsed = JSON.parse(text);
-      if (parsed.id) finalId = parsed.id;
+      if (parsed.id) {
+        finalId = parsed.id;
+        // Pre-fill fields from QR data if available
+        if (parsed.name) setAssetName(parsed.name);
+        if (parsed.cat) setScannedCategory(parsed.cat);
+      }
     } catch (e) {
       // Not JSON, use as is
     }

@@ -29,10 +29,12 @@ export const MapPage = () => {
   }, [loadData]);
 
   const filtered = useMemo(() => {
-    return checkIns.filter((c) =>
-      c.barcode_id.toLowerCase().includes(search.toLowerCase()) ||
-      (c.asset_name && c.asset_name.toLowerCase().includes(search.toLowerCase()))
-    );
+    return checkIns
+      .filter((c: any) => c.fase_pertumbuhan !== null && c.fase_pertumbuhan !== undefined)
+      .filter((c) =>
+        c.barcode_id.toLowerCase().includes(search.toLowerCase()) ||
+        (c.asset_name && c.asset_name.toLowerCase().includes(search.toLowerCase()))
+      );
   }, [checkIns, search]);
 
   const handleSearchSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {

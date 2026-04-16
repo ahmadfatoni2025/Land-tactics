@@ -65,7 +65,7 @@ export const FormStep = ({
   assetName,
   scannedCategory,
   manualAddress,
-  coords,
+  coords: _coords,
   loading,
   onReset,
   onCommit,

@@ -6,11 +6,11 @@ import {
 import { cn } from '../../lib/utils';
 
 const navItems = [
-  { to: '/', label: 'Dasbor', icon: LayoutDashboard },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/map', label: 'Peta', icon: MapIcon },
   { to: '/scanner', label: 'Scan', icon: Scan, primary: true },
   { to: '/assets', label: 'Assets', icon: Boxes },
-  { to: '/generate', label: 'Add', icon: Plus },
+  { to: '/generate', label: 'Generate QR', icon: Plus },
 ];
 
 export const Navbar = () => {
@@ -23,7 +23,7 @@ export const Navbar = () => {
 
             {/* Left: Logo + Nav */}
             <div className="flex items-center gap-8">
-              <NavLink to="/" className="flex items-center gap-2.5 shrink-0">
+              <NavLink to="/dashboard" className="flex items-center gap-2.5 shrink-0">
                 <div className="h-9 w-9 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-100">
                   <span className="text-white font-black text-sm italic">G</span>
                 </div>
@@ -35,7 +35,7 @@ export const Navbar = () => {
                   <NavLink
                     key={item.to}
                     to={item.to}
-                    end={item.to === '/'}
+                    end={item.to === '/dashboard'}
                     className={({ isActive }) => cn(
                       "px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200",
                       isActive
@@ -68,7 +68,7 @@ export const Navbar = () => {
 
       {/* --- MOBILE TOP STATUS BAR (Logo Only) --- */}
       <div className="md:hidden sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-50 px-6 py-4 flex items-center justify-between">
-        <NavLink to="/" className="flex items-center gap-2">
+        <NavLink to="/dashboard" className="flex items-center gap-2">
           <div className="h-7 w-7 rounded-lg bg-indigo-600 flex items-center justify-center">
             <span className="text-white font-black text-[10px] italic">G</span>
           </div>
@@ -89,7 +89,7 @@ export const Navbar = () => {
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  end={item.to === '/'}
+                  end={item.to === '/dashboard'}
                   className={({ isActive }) => cn(
                     "relative flex flex-col items-center justify-center gap-1 transition-all duration-300",
                     item.primary ? "px-2" : "flex-1 py-2",
