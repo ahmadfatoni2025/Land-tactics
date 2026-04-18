@@ -1,4 +1,4 @@
-import { BarChart3, FileText, Search, Bell } from 'lucide-react';
+import { BarChart3, FileText, Bell } from 'lucide-react';
 
 export const ReportsPage = () => {
   return (

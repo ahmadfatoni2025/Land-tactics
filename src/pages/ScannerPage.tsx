@@ -10,7 +10,7 @@ import { FormStep } from './scanner/FormStep';
 
 export const ScannerPage = () => {
   const navigate = useNavigate();
-  const { isAdmin, isLoggedIn } = useAuth();
+  const { isLoggedIn } = useAuth();
   const [scannerActive, setScannerActive] = useState(true);
   const [scannedId, setScannedId] = useState<string | null>(null);
   const [fileScanError, setFileScanError] = useState<string | null>(null);

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { X, Upload, Camera, ChevronLeft, Zap, Sparkles } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { X, Upload, ChevronLeft } from 'lucide-react';
+
 import { Link } from 'react-router-dom';
 
 interface ScanStepProps {

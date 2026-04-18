@@ -3,7 +3,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useAttendance } from '../../hooks/useAttendance';
 import { Link } from 'react-router-dom';
 import { Search, MapPin, Scan, Leaf, Droplets, Thermometer, ChevronRight, Loader2 } from 'lucide-react';
-import { cn } from '../../lib/utils';
+
 
 export const Userdashboard = () => {
   const { user, profile, loading: authLoading } = useAuth();

@@ -7,9 +7,7 @@ import {
   QrCode, 
   ShieldCheck, 
   BarChart3,
-  Search,
   ArrowUpRight,
-  Sprout,
   Activity
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
