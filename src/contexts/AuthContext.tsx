@@ -124,9 +124,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [fetchProfile]);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message };
-    return { error: null };
+    setLoading(true);
+    try {
+      const { data: { user: u, session: s }, error } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (error) {
+        setLoading(false);
+        return { error: error.message };
+      }
+
+      if (u) {
+        setUser(u);
+        setSession(s);
+        const p = await fetchProfile(u.id);
+        setProfile(p);
+        if (p) localStorage.setItem('geoagri_profile', JSON.stringify(p));
+      }
+      
+      setLoading(false);
+      return { error: null };
+    } catch (err: any) {
+      setLoading(false);
+      return { error: err.message || 'Terjadi kesalahan saat login' };
+    }
   };
 
   const signOut = async () => {

@@ -27,8 +27,8 @@ export const LoginPage = () => {
       setError(result.error);
       setLoading(false);
     } else {
-      // AuthContext will update, App.tsx handles redirect
-      navigate('/', { replace: true });
+      // Langsung arahkan ke root, AuthContext sudah siap dengan data profile
+      window.location.href = '/';
     }
   };
 
