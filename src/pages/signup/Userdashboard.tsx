@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../hooks/useAuth';
-import { useAttendance } from '../hooks/useAttendance';
+import { useAuth } from '../../hooks/useAuth';
+import { useAttendance } from '../../hooks/useAttendance';
 import { Link } from 'react-router-dom';
 import { Search, MapPin, Scan, Leaf, Droplets, Thermometer, ChevronRight, Loader2 } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
-export const DashboardPage = () => {
+export const Userdashboard = () => {
   const { user, profile, loading: authLoading } = useAuth();
   const { fetchCheckIns } = useAttendance();
   const [plants, setPlants] = useState<any[]>([]);
@@ -176,4 +177,4 @@ export const DashboardPage = () => {
   );
 };
 
-export default DashboardPage;
+export default Userdashboard;

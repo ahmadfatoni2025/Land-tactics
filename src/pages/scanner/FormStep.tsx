@@ -1,20 +1,30 @@
-import { 
-  ShieldCheck, 
-  MapPin, 
-  RotateCcw, 
-  CheckCircle2, 
-  Sparkles, 
-  Leaf, 
-  AlertTriangle, 
-  Zap, 
-  Camera, 
-  Image as ImageIcon, 
-  Loader2 
+import {
+  ShieldCheck,
+  MapPin,
+  RotateCcw,
+  CheckCircle2,
+  Leaf,
+  AlertTriangle,
+  Camera,
+  Image as ImageIcon,
+  Loader2,
+  Thermometer,
+  Droplets,
+  Sun,
+  Ruler,
+  Scale,
+  Sprout,
+  Flower2,
+  Bug,
+  Droplet,
+  Wind,
+  Activity,
+  Check
 } from 'lucide-react';
-import { cn } from '../../lib/utils';
 import { useRef } from 'react';
 
 interface FormStepProps {
+  isLoggedIn: boolean;
   scannedId: string;
   assetName: string;
   scannedCategory: string;
@@ -23,13 +33,12 @@ interface FormStepProps {
   loading: boolean;
   onReset: () => void;
   onCommit: () => void;
-  
-  // States
+
   fasePertumbuhan: string;
   setFasePertumbuhan: (v: string) => void;
   deployStatus: string;
   setDeployStatus: (v: string) => void;
-  
+
   tinggiTanaman: string;
   setTinggiTanaman: (v: string) => void;
   diameterBatang: string;
@@ -40,32 +49,81 @@ interface FormStepProps {
   setLebarKanopi: (v: string) => void;
   jumlahBungaBuah: string;
   setJumlahBungaBuah: (v: string) => void;
+
   phTanah: string;
   setPhTanah: (v: string) => void;
-  
+  suhuUdara: string;
+  setSuhuUdara: (v: string) => void;
+  kelembapanTanah: string;
+  setKelembapanTanah: (v: string) => void;
+  intensitasCahaya: string;
+  setIntensitasCahaya: (v: string) => void;
+
   warnaDaun: string;
   setWarnaDaun: (v: string) => void;
   statusHama: string;
   setStatusHama: (v: string) => void;
-  kelembapanTanah: string;
-  setKelembapanTanah: (v: string) => void;
-  
+
   tindakanDipilih: string[];
   toggleTindakan: (t: string) => void;
   notes: string;
   setNotes: (v: string) => void;
-  
+
   photoPreview: string | null;
   photoDetailPreview: string | null;
   handlePhotoCapture: (e: React.ChangeEvent<HTMLInputElement>, type: 'overview' | 'detail') => void;
 }
 
+const GROWTH_PHASES = [
+  { value: 'vegetatif_awal', label: 'Vegetatif Awal', icon: Sprout },
+  { value: 'vegetatif_aktif', label: 'Vegetatif Aktif', icon: Leaf },
+  { value: 'generatif', label: 'Generatif', icon: Flower2 },
+  { value: 'ripening', label: 'Pematangan', icon: CheckCircle2 }
+];
+
+const HEALTH_STATUS = [
+  { value: 'sehat_luar_biasa', label: 'Prima', icon: Activity, color: 'emerald' },
+  { value: 'sehat', label: 'Sehat', icon: Leaf, color: 'green' },
+  { value: 'kurang_sehat', label: 'Tertekan', icon: AlertTriangle, color: 'yellow' },
+  { value: 'kritis', label: 'Kritis', icon: AlertTriangle, color: 'red' }
+];
+
+const LEAF_COLORS = [
+  { value: 'hijau_tua', label: 'Hijau Tua', color: 'bg-green-700' },
+  { value: 'hijau_kuning', label: 'Hijau Kuning', color: 'bg-yellow-500' },
+  { value: 'bercak', label: 'Bercak', color: 'bg-amber-700' },
+  { value: 'kuning', label: 'Kuning', color: 'bg-yellow-600' }
+];
+
+const PEST_STATUS = [
+  { value: 'nihil', label: 'Tidak Ada', icon: Check },
+  { value: 'ringan', label: 'Ringan', icon: Bug },
+  { value: 'sedang', label: 'Sedang', icon: Bug },
+  { value: 'berat', label: 'Berat', icon: Bug }
+];
+
+const SOIL_MOISTURE = [
+  { value: 'kering', label: 'Kering', icon: Wind },
+  { value: 'normal', label: 'Normal', icon: Droplet },
+  { value: 'basah', label: 'Basah', icon: Droplets }
+];
+
+const ACTIONS = [
+  { label: 'Penyiraman', icon: Droplets },
+  { label: 'Pemupukan', icon: Leaf },
+  { label: 'Penyiangan', icon: Sprout },
+  { label: 'Pemangkasan', icon: Scissors },
+  { label: 'Pestisida', icon: Bug }
+];
+
+import { Scissors } from 'lucide-react';
+
 export const FormStep = ({
+  isLoggedIn,
   scannedId,
   assetName,
   scannedCategory,
   manualAddress,
-  coords,
   loading,
   onReset,
   onCommit,
@@ -85,12 +143,16 @@ export const FormStep = ({
   setJumlahBungaBuah,
   phTanah,
   setPhTanah,
+  suhuUdara,
+  setSuhuUdara,
+  kelembapanTanah,
+  setKelembapanTanah,
+  intensitasCahaya,
+  setIntensitasCahaya,
   warnaDaun,
   setWarnaDaun,
   statusHama,
   setStatusHama,
-  kelembapanTanah,
-  setKelembapanTanah,
   tindakanDipilih,
   toggleTindakan,
   notes,
@@ -103,323 +165,425 @@ export const FormStep = ({
   const detailCameraRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="flex flex-col min-h-[800px] animate-in slide-in-from-right duration-700 bg-white shadow-2xl rounded-t-[40px] mt-4 lg:mt-0">
-      {/* Compact Identity Header */}
-      <div className="px-10 py-8 bg-gradient-to-r from-indigo-50/80 to-emerald-50/50 border-b border-indigo-100 flex flex-col md:flex-row md:items-center justify-between gap-6 rounded-t-[40px]">
-        <div className="flex items-center gap-5">
-          <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl rotate-3">
-            <ShieldCheck size={28} />
+    <div className="bg-white min-h-screen">
+      {/* Header - Full Width */}
+      <div className="border-b border-gray-100 bg-white sticky top-0 z-10">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-emerald-600 rounded-lg flex items-center justify-center">
+                <ShieldCheck size={18} className="text-white" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-sm font-bold text-gray-900">
+                    {scannedId || 'BATCH-ID'}
+                  </span>
+                  <span className="text-xs text-gray-400">•</span>
+                  <span className="text-xs text-gray-500">
+                    {scannedCategory || 'Komoditas'}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500">{assetName || 'Nama Tanaman'}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-50 rounded-lg">
+                <MapPin size={12} className="text-gray-400" />
+                <span className="text-xs text-gray-500 max-w-[180px] truncate">
+                  {manualAddress || 'Lokasi'}
+                </span>
+              </div>
+              <button
+                onClick={onReset}
+                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                title="Scan Ulang"
+              >
+                <RotateCcw size={16} />
+              </button>
+            </div>
           </div>
-          <div>
-            <h3 className="text-2xl font-black text-gray-900 tracking-tighter uppercase italic">{scannedId}</h3>
-            <p className="text-indigo-600 text-[11px] font-bold uppercase tracking-widest mt-1">
-              {scannedCategory || 'Agricultural'} • {assetName || 'Verified Unit'}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-md rounded-xl border border-indigo-100 shadow-sm">
-            <MapPin size={16} className="text-indigo-600" />
-            <span className="text-[12px] font-bold text-gray-700 truncate max-w-[200px] md:max-w-xs">{manualAddress || 'Location Synchronized'}</span>
-          </div>
-          <button
-            onClick={onReset}
-            className="p-3 bg-white hover:bg-red-50 text-stone-400 hover:text-red-500 transition-all rounded-xl border border-gray-100 shadow-sm"
-            title="Reset & Scan Ulang"
-          >
-            <RotateCcw size={20} />
-          </button>
         </div>
       </div>
 
-      {/* REPORTING ENGINE (Form Side) */}
-      <div className="flex-1 p-8 md:p-14 bg-white overflow-y-auto">
-        <div className="flex items-end justify-between border-b border-gray-100 pb-8 mb-12">
-          <div>
-            <h2 className="text-4xl font-black text-gray-900 tracking-tighter italic uppercase leading-none">Field Report</h2>
-            <p className="text-gray-400 text-[11px] font-bold mt-3 uppercase tracking-[0.2em] italic">Growth metrics & Health Intel</p>
-          </div>
-          <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center">
-            <CheckCircle2 size={24} className="text-emerald-500" />
-          </div>
-        </div>
-
-        <div className="space-y-20">
-          {/* CATEGORY 1: HEALTH & PHASE */}
-          <div className="space-y-10">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 shadow-sm">
-                <CheckCircle2 size={20} />
-              </div>
-              <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest">Growth Phase & Health</h4>
+      {/* Form Content - Full Width */}
+      <div className={`max-w-5xl mx-auto px-4 sm:px-6 py-6 ${!isLoggedIn ? 'opacity-60 pointer-events-none' : ''}`}>
+        <div className="space-y-8">
+          {/* Fase Pertumbuhan */}
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <Sprout size={16} className="text-emerald-600" />
+              <h4 className="text-sm font-semibold text-gray-900">Fase Pertumbuhan</h4>
             </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {GROWTH_PHASES.map((phase) => {
+                const Icon = phase.icon;
+                const isActive = fasePertumbuhan === phase.value;
+                return (
+                  <button
+                    key={phase.value}
+                    onClick={() => setFasePertumbuhan(phase.value)}
+                    className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isActive
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                  >
+                    <Icon size={14} />
+                    {phase.label}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-              <div className="space-y-6">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Fase Pertumbuhan</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {['vegetatif_awal', 'vegetatif_aktif', 'generatif', 'ripening'].map(v => (
+          {/* Status Kesehatan */}
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <Activity size={16} className="text-emerald-600" />
+              <h4 className="text-sm font-semibold text-gray-900">Status Kesehatan</h4>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {HEALTH_STATUS.map((status) => {
+                const Icon = status.icon;
+                const isActive = deployStatus === status.value;
+                return (
+                  <button
+                    key={status.value}
+                    onClick={() => setDeployStatus(status.value)}
+                    className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isActive
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                  >
+                    <Icon size={14} />
+                    {status.label}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Parameter Morfologi */}
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <Ruler size={16} className="text-blue-600" />
+              <h4 className="text-sm font-semibold text-gray-900">Parameter Morfologi</h4>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs text-gray-500">Tinggi Tanaman</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={tinggiTanaman}
+                    onChange={(e) => setTinggiTanaman(e.target.value)}
+                    placeholder="0"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">cm</span>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-gray-500">Diameter Batang</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={diameterBatang}
+                    onChange={(e) => setDiameterBatang(e.target.value)}
+                    placeholder="0"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">mm</span>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-gray-500">Jumlah Daun</label>
+                <input
+                  type="number"
+                  value={jumlahDaun}
+                  onChange={(e) => setJumlahDaun(e.target.value)}
+                  placeholder="0"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-gray-500">Lebar Kanopi</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={lebarKanopi}
+                    onChange={(e) => setLebarKanopi(e.target.value)}
+                    placeholder="0"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">cm</span>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-gray-500">Jumlah Bunga/Buah</label>
+                <input
+                  type="number"
+                  value={jumlahBungaBuah}
+                  onChange={(e) => setJumlahBungaBuah(e.target.value)}
+                  placeholder="0"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Kondisi Lingkungan */}
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <Thermometer size={16} className="text-teal-600" />
+              <h4 className="text-sm font-semibold text-gray-900">Kondisi Lingkungan</h4>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs text-gray-500">Suhu Udara</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={suhuUdara}
+                    onChange={(e) => setSuhuUdara(e.target.value)}
+                    placeholder="0"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">°C</span>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-gray-500">Intensitas Cahaya</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={intensitasCahaya}
+                    onChange={(e) => setIntensitasCahaya(e.target.value)}
+                    placeholder="0"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">Lux</span>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-gray-500">pH Tanah</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={phTanah}
+                  onChange={(e) => setPhTanah(e.target.value)}
+                  placeholder="0"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-gray-500">Kelembapan Tanah</label>
+                <div className="flex gap-2">
+                  {SOIL_MOISTURE.map((m) => {
+                    const Icon = m.icon;
+                    const isActive = kelembapanTanah === m.value;
+                    return (
+                      <button
+                        key={m.value}
+                        onClick={() => setKelembapanTanah(m.value)}
+                        className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-sm font-medium transition-all ${isActive
+                            ? 'bg-teal-600 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                      >
+                        <Icon size={14} />
+                        {m.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Kualitas Tanaman */}
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <Leaf size={16} className="text-amber-600" />
+              <h4 className="text-sm font-semibold text-gray-900">Kualitas Tanaman</h4>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-xs text-gray-500">Warna Daun</label>
+                <div className="flex flex-wrap gap-2">
+                  {LEAF_COLORS.map((color) => (
                     <button
-                      key={v}
-                      onClick={() => setFasePertumbuhan(v)}
-                      className={cn(
-                        "py-4 px-3 rounded-2xl text-[11px] font-bold uppercase transition-all border-2",
-                        fasePertumbuhan === v ? "bg-stone-900 border-stone-900 text-white shadow-xl" : "bg-gray-50 border-transparent text-gray-400 hover:border-gray-200"
-                      )}
+                      key={color.value}
+                      onClick={() => setWarnaDaun(color.value)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${warnaDaun === color.value
+                          ? 'bg-gray-900 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
                     >
-                      {v.replace('_', ' ')}
+                      <div className={`w-2.5 h-2.5 rounded-full ${color.color}`} />
+                      {color.label}
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="space-y-6">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Status Kesehatan Umum</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {[
-                    { k: 'sehat_luar_biasa', l: 'Prima', i: <Sparkles size={18} /> },
-                    { k: 'sehat', l: 'Sehat', i: <Leaf size={18} /> },
-                    { k: 'kurang_sehat', l: 'Layu', i: <AlertTriangle size={18} /> },
-                    { k: 'kritis', l: 'Kritis', i: <Zap size={18} /> }
-                  ].map(s => (
-                    <button
-                      key={s.k}
-                      onClick={() => setDeployStatus(s.k)}
-                      className={cn(
-                        "py-5 px-1 rounded-2xl text-[10px] font-black uppercase transition-all border-2 flex flex-col items-center gap-3",
-                        deployStatus === s.k ? "bg-emerald-600 border-emerald-600 text-white shadow-2xl scale-[1.05]" : "bg-gray-50 border-transparent text-gray-400 hover:border-gray-200"
-                      )}
-                    >
-                      {s.i}
-                      {s.l}
-                    </button>
-                  ))}
+              <div className="space-y-2">
+                <label className="text-xs text-gray-500">Status Hama</label>
+                <div className="flex flex-wrap gap-2">
+                  {PEST_STATUS.map((pest) => {
+                    const Icon = pest.icon;
+                    const isActive = statusHama === pest.value;
+                    return (
+                      <button
+                        key={pest.value}
+                        onClick={() => setStatusHama(pest.value)}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${isActive
+                            ? 'bg-red-600 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                      >
+                        <Icon size={14} />
+                        {pest.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* CATEGORY 2: MORFOLOGI (Numeric) */}
-          <div className="space-y-10">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 shadow-sm">
-                <Leaf size={20} />
-              </div>
-              <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest">Morfologi & Fisik</h4>
+          {/* Tindakan Lapangan */}
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <Activity size={16} className="text-purple-600" />
+              <h4 className="text-sm font-semibold text-gray-900">Tindakan Lapangan</h4>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {[
-                { l: 'Tinggi (cm)', v: tinggiTanaman, s: setTinggiTanaman },
-                { l: 'Batang (mm)', v: diameterBatang, s: setDiameterBatang },
-                { l: 'Jumlah Daun', v: jumlahDaun, s: setJumlahDaun },
-                { l: 'Kanopi (cm)', v: lebarKanopi, s: setLebarKanopi },
-                { l: 'Bunga/Buah', v: jumlahBungaBuah, s: setJumlahBungaBuah },
-                { l: 'pH Tanah', v: phTanah, s: setPhTanah }
-              ].map((item, i) => (
-                <div key={i} className="space-y-4">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{item.l}</label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      value={item.v}
-                      onChange={e => item.s(e.target.value)}
-                      placeholder="0.0"
-                      className="w-full bg-gray-50 border-2 border-transparent rounded-[20px] px-6 py-5 text-base font-black text-stone-900 focus:bg-white focus:border-indigo-500 transition-all outline-none shadow-sm"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* CATEGORY 3: KUALITAS & LINGKUNGAN */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-            <div className="space-y-6">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Warna Daun</label>
-              <div className="flex flex-col gap-3">
-                {[
-                  { k: 'hijau_tua', l: 'Hijau Tua', c: 'bg-emerald-800' },
-                  { k: 'hijau_kuning', l: 'Kekuningan', c: 'bg-yellow-400' },
-                  { k: 'bercak', l: 'Bercak', c: 'bg-amber-900' },
-                  { k: 'kuning', l: 'Kuning Mati', c: 'bg-yellow-600' }
-                ].map(x => (
+            <div className="flex flex-wrap gap-2">
+              {ACTIONS.map((action) => {
+                const Icon = action.icon;
+                const isActive = tindakanDipilih.includes(action.label);
+                return (
                   <button
-                    key={x.k}
-                    onClick={() => setWarnaDaun(x.k)}
-                    className={cn(
-                      "flex items-center gap-4 px-6 py-4 rounded-2xl border-2 transition-all text-[12px] font-bold",
-                      warnaDaun === x.k ? "bg-white border-indigo-500 shadow-lg translate-x-2" : "bg-gray-50 border-transparent text-gray-400 hover:border-gray-200"
-                    )}
+                    key={action.label}
+                    onClick={() => toggleTindakan(action.label)}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${isActive
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
                   >
-                    <div className={cn("w-4 h-4 rounded-full shadow-inner", x.c)}></div>
-                    {x.l}
+                    <Icon size={14} />
+                    {action.label}
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
+          </section>
 
-            <div className="space-y-6">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Status Hama</label>
-              <div className="flex flex-col gap-3">
-                {['nihil', 'ringan', 'sedang', 'berat'].map(x => (
-                  <button
-                    key={x}
-                    onClick={() => setStatusHama(x)}
-                    className={cn(
-                      "text-left px-6 py-4 rounded-2xl border-2 transition-all text-[12px] font-bold uppercase",
-                      statusHama === x ? "bg-red-50 border-red-200 text-red-600 shadow-md translate-x-2" : "bg-gray-50 border-transparent text-gray-400 hover:border-gray-200"
-                    )}
-                  >
-                    {x} {x !== 'nihil' && 'Terdeteksi'}
-                  </button>
-                ))}
-              </div>
+          {/* Catatan */}
+          <section>
+            <label className="text-xs text-gray-500 mb-1.5 block">Catatan Observasi</label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Catatan kondisi tanaman, hama, atau observasi lainnya..."
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-none h-24"
+            />
+          </section>
+
+          {/* Dokumentasi */}
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <Camera size={16} className="text-emerald-600" />
+              <h4 className="text-sm font-semibold text-gray-900">Dokumentasi</h4>
             </div>
-
-            <div className="space-y-6">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Kelembapan Tanah</label>
-              <div className="flex flex-col gap-3">
-                {['kering', 'normal', 'basah'].map(x => (
-                  <button
-                    key={x}
-                    onClick={() => setKelembapanTanah(x)}
-                    className={cn(
-                      "text-left px-6 py-4 rounded-2xl border-2 transition-all text-[12px] font-bold uppercase",
-                      kelembapanTanah === x ? "bg-indigo-50 border-indigo-200 text-indigo-600 shadow-md translate-x-2" : "bg-gray-50 border-transparent text-gray-400 hover:border-gray-200"
-                    )}
-                  >
-                    {x}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* CATEGORY 4: INTERVENSI & TINDAKAN */}
-          <div className="space-y-10 p-10 bg-gray-50 rounded-[50px] border border-gray-100 shadow-inner">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 shadow-sm">
-                <RotateCcw size={20} />
-              </div>
-              <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest">Tindakan Lapangan</h4>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {['Penyiraman', 'Pemupukan', 'Penyiangan', 'Pemangkasan', 'Pestisida'].map(t => (
-                <button
-                  key={t}
-                  onClick={() => toggleTindakan(t)}
-                  className={cn(
-                    "py-5 px-3 rounded-2xl text-[10px] font-black uppercase transition-all border-2",
-                    tindakanDipilih.includes(t) ? "bg-amber-500 border-amber-500 text-white shadow-xl scale-[1.02]" : "bg-white border-transparent text-gray-400 hover:border-amber-200"
-                  )}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-
-            <div className="space-y-4">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4">Agronomic Observations</label>
-              <textarea
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                placeholder="Anomalies, pests, or rapid growth signals..."
-                className="w-full bg-white border-2 border-transparent rounded-[40px] px-10 py-8 text-sm font-bold text-stone-700 shadow-lg focus:border-indigo-500 transition-all outline-none h-40 resize-none"
-              />
-            </div>
-          </div>
-
-          {/* CATEGORY 5: DOKUMENTASI VISUAL (DOUBLE) */}
-          <div className="space-y-10">
-             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 shadow-sm">
-                <Camera size={20} />
-              </div>
-              <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest">Bukti Visual (Wajib Foto Overview)</h4>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              {/* OVERVIEW PHOTO */}
-              <div className="space-y-6">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Foto Overview (Utama)</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-gray-500 mb-1.5 block">Foto Overview *</label>
                 <div
                   onClick={() => cameraInputRef.current?.click()}
-                  className={cn(
-                    "aspect-video rounded-[40px] border-4 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all relative overflow-hidden group",
-                    photoPreview ? "border-indigo-500 shadow-2xl" : "border-gray-100 hover:bg-gray-50 hover:border-indigo-200"
-                  )}
+                  className={`aspect-video rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden ${photoPreview
+                      ? 'border-emerald-500 bg-gray-50'
+                      : 'border-gray-200 hover:border-emerald-300 hover:bg-gray-50'
+                    }`}
                 >
                   {photoPreview ? (
-                    <>
-                      <img src={photoPreview} className="w-full h-full object-cover" alt="Overview" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
-                        <Camera className="text-white" size={40} />
-                      </div>
-                    </>
+                    <img src={photoPreview} className="w-full h-full object-cover" alt="Overview" />
                   ) : (
-                    <div className="flex flex-col items-center gap-5">
-                      <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-200 group-hover:text-indigo-300 transition-colors">
-                        <Camera size={32} />
-                      </div>
-                      <span className="text-[11px] font-black text-gray-300 uppercase tracking-[0.2em] italic">Ambil Foto Utama</span>
+                    <div className="flex flex-col items-center gap-2">
+                      <Camera size={28} className="text-gray-300" />
+                      <span className="text-xs text-gray-400">Ambil Foto</span>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* DETAIL PHOTO */}
-              <div className="space-y-6">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Foto Detail (Close-up)</label>
+              <div>
+                <label className="text-xs text-gray-500 mb-1.5 block">Foto Detail</label>
                 <div
                   onClick={() => detailCameraRef.current?.click()}
-                  className={cn(
-                    "aspect-video rounded-[40px] border-4 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all relative overflow-hidden group",
-                    photoDetailPreview ? "border-emerald-500 shadow-2xl" : "border-gray-100 hover:bg-gray-50 hover:border-emerald-200"
-                  )}
+                  className={`aspect-video rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden ${photoDetailPreview
+                      ? 'border-emerald-500 bg-gray-50'
+                      : 'border-gray-200 hover:border-emerald-300 hover:bg-gray-50'
+                    }`}
                 >
                   {photoDetailPreview ? (
-                    <>
-                      <img src={photoDetailPreview} className="w-full h-full object-cover" alt="Detail" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
-                        <Camera className="text-white" size={40} />
-                      </div>
-                    </>
+                    <img src={photoDetailPreview} className="w-full h-full object-cover" alt="Detail" />
                   ) : (
-                    <div className="flex flex-col items-center gap-5">
-                      <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-200 group-hover:text-emerald-300 transition-colors">
-                        <ImageIcon size={32} />
-                      </div>
-                      <span className="text-[11px] font-black text-gray-300 uppercase tracking-[0.2em] italic">Ambil Foto Close-up</span>
+                    <div className="flex flex-col items-center gap-2">
+                      <ImageIcon size={28} className="text-gray-300" />
+                      <span className="text-xs text-gray-400">Foto Close-up</span>
                     </div>
                   )}
                 </div>
               </div>
             </div>
+          </section>
 
-            {/* Hidden Inputs */}
-            <input type="file" ref={cameraInputRef} accept="image/*" capture="environment" onChange={(e) => handlePhotoCapture(e, 'overview')} className="hidden" />
-            <input type="file" ref={detailCameraRef} accept="image/*" capture="environment" onChange={(e) => handlePhotoCapture(e, 'detail')} className="hidden" />
-          </div>
+          {/* Hidden Inputs */}
+          <input
+            type="file"
+            ref={cameraInputRef}
+            accept="image/*"
+            capture="environment"
+            onChange={(e) => handlePhotoCapture(e, 'overview')}
+            className="hidden"
+          />
+          <input
+            type="file"
+            ref={detailCameraRef}
+            accept="image/*"
+            capture="environment"
+            onChange={(e) => handlePhotoCapture(e, 'detail')}
+            className="hidden"
+          />
 
-          <div className="pt-16 pb-12">
-            <button
-              onClick={onCommit}
-              disabled={loading || !photoPreview}
-              className="w-full py-8 bg-stone-900 text-white rounded-[45px] font-black text-lg shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:bg-black hover:shadow-[0_25px_60px_rgba(0,0,0,0.4)] transition-all active:scale-95 disabled:opacity-30 flex items-center justify-center gap-5 uppercase tracking-[0.4em]"
-            >
-              {loading ? (
-                <Loader2 className="animate-spin" size={28} />
-              ) : (
-                <>
-                  Sync Report <CheckCircle2 size={28} />
-                </>
-              )}
-            </button>
-            <p className="text-center text-[10px] text-gray-300 font-bold uppercase tracking-[0.3em] mt-10 italic">
-              Authorized Field Report • GPS Verified • Identity Secured
-            </p>
+          {/* Submit Button */}
+          <div className="pt-4">
+            {!isLoggedIn ? (
+              <div className="flex items-center justify-center gap-2 p-3 bg-gray-100 rounded-lg text-gray-500">
+                <AlertTriangle size={16} />
+                <span className="text-sm">Mode Baca Saja - Harus Login untuk mengisi laporan lapangan</span>
+              </div>
+            ) : (
+              <button
+                onClick={onCommit}
+                disabled={loading || !photoPreview}
+                className="w-full py-3 bg-emerald-600 text-white rounded-lg font-semibold text-sm hover:bg-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={16} />
+                    Simpan Laporan Lapangan
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>

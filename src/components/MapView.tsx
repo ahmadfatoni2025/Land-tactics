@@ -18,6 +18,7 @@ const DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 export interface CheckIn {
+  category: string;
   id: string;
   barcode_id: string;
   lat: number;

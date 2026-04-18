@@ -29,6 +29,10 @@ export interface AssetData {
   kondisi_gulma?: string;
   ph_tanah?: number;
   tindakan_diambil?: string[]; // Array of strings
+  suhu_udara?: number;
+  intensitas_cahaya?: number;
+  metode_tanam?: string;
+  target_panen?: string;
 }
 
 export const useAttendance = () => {
@@ -101,6 +105,10 @@ export const useAttendance = () => {
           kelembapan_tanah: data.kelembapan_tanah,
           kondisi_gulma: data.kondisi_gulma,
           ph_tanah: data.ph_tanah,
+          suhu_udara: data.suhu_udara,
+          intensitas_cahaya: data.intensitas_cahaya,
+          metode_tanam: data.metode_tanam,
+          target_panen: data.target_panen,
           tindakan: data.tindakan_diambil
         });
 

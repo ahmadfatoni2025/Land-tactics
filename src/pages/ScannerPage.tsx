@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useAttendance } from '../hooks/useAttendance';
+import { useAuth } from '../hooks/useAuth';
 import { Html5Qrcode } from 'html5-qrcode';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,6 +10,7 @@ import { FormStep } from './scanner/FormStep';
 
 export const ScannerPage = () => {
   const navigate = useNavigate();
+  const { isAdmin, isLoggedIn } = useAuth();
   const [scannerActive, setScannerActive] = useState(true);
   const [scannedId, setScannedId] = useState<string | null>(null);
   const [fileScanError, setFileScanError] = useState<string | null>(null);
@@ -32,6 +34,8 @@ export const ScannerPage = () => {
   const [kelembapanTanah, setKelembapanTanah] = useState('normal');
   const [kondisiGulma, setKondisiGulma] = useState('terkendali');
   const [phTanah, setPhTanah] = useState('');
+  const [suhuUdara, setSuhuUdara] = useState('');
+  const [intensitasCahaya, setIntensitasCahaya] = useState('');
 
   // 4. Intervensi & Tindakan
   const [tindakanDipilih, setTindakanDipilih] = useState<string[]>([]);
@@ -147,6 +151,8 @@ export const ScannerPage = () => {
       kelembapan_tanah: kelembapanTanah,
       kondisi_gulma: kondisiGulma,
       ph_tanah: parseFloat(phTanah) || 0,
+      suhu_udara: parseFloat(suhuUdara) || 0,
+      intensitas_cahaya: parseFloat(intensitasCahaya) || 0,
       tindakan_diambil: tindakanDipilih
     });
 
@@ -176,7 +182,7 @@ export const ScannerPage = () => {
   };
 
   return (
-    <div className="w-full min-h-screen bg-[#f8faf9]">
+    <div className="w-full min-h-screen bg-[#f5f7f6]">
       <div id="qr-file-detector-hidden" className="hidden"></div>
       
       {!scannedId && scannerActive ? (
@@ -189,6 +195,7 @@ export const ScannerPage = () => {
       ) : scannedId ? (
         <div className="max-w-[1200px] mx-auto px-0 lg:px-6 pb-20">
              <FormStep 
+              isLoggedIn={isLoggedIn}
               scannedId={scannedId}
               assetName={assetName}
               scannedCategory={scannedCategory}
@@ -219,6 +226,10 @@ export const ScannerPage = () => {
               setStatusHama={setStatusHama}
               kelembapanTanah={kelembapanTanah}
               setKelembapanTanah={setKelembapanTanah}
+              suhuUdara={suhuUdara}
+              setSuhuUdara={setSuhuUdara}
+              intensitasCahaya={intensitasCahaya}
+              setIntensitasCahaya={setIntensitasCahaya}
               tindakanDipilih={tindakanDipilih}
               toggleTindakan={toggleTindakan}
               notes={notes}
@@ -229,18 +240,18 @@ export const ScannerPage = () => {
             />
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-black/5">
-            <div className="p-12 bg-white rounded-[40px] shadow-2xl flex flex-col items-center gap-8 max-w-sm text-center">
-                <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center text-white shadow-xl rotate-6">
-                    <span className="text-4xl font-bold italic">QR</span>
+        <div className="flex flex-col items-start sm:items-center justify-center min-h-screen bg-black/5 pt-12 sm:pt-0">
+            <div className="p-8 sm:p-12 bg-white rounded-[32px] sm:rounded-[40px] shadow-2xl flex flex-col items-center gap-6 sm:gap-8 max-w-[90%] sm:max-w-sm text-center mx-auto">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-indigo-600 rounded-2xl sm:rounded-3xl flex items-center justify-center text-white shadow-xl rotate-6">
+                    <span className="text-3xl sm:text-4xl font-bold italic">QR</span>
                 </div>
                 <div>
-                    <h3 className="text-2xl font-black text-gray-900 tracking-tight">Scanner Offline</h3>
-                    <p className="text-gray-400 text-sm mt-2 font-medium">Ready to engage field identification system.</p>
+                    <h3 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">Scanner Offline</h3>
+                    <p className="text-gray-400 text-xs sm:text-sm mt-2 font-medium">Ready to engage field identification system.</p>
                 </div>
                 <button 
                 onClick={() => setScannerActive(true)}
-                className="w-full py-5 bg-stone-900 text-white rounded-[25px] font-black uppercase tracking-widest hover:bg-black transition-all active:scale-95 shadow-xl"
+                className="w-full py-4 sm:py-5 bg-stone-900 text-white rounded-[20px] sm:rounded-[25px] font-black uppercase tracking-widest hover:bg-black transition-all active:scale-95 shadow-xl text-xs sm:text-sm"
                 >
                 Engage Scanner
                 </button>

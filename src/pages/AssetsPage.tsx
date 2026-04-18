@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAttendance } from '../hooks/useAttendance';
+import { useAuth } from '../hooks/useAuth';
 import {
   Search, Download, Calendar, BarChart2,
   Loader2, Edit2, Trash2, X, ChevronLeft, ChevronRight, ChevronDown,
@@ -38,6 +39,7 @@ interface AssetRecord {
 
 export const AssetsPage = () => {
   const { fetchCheckIns, deleteAsset, updateAsset, loading: actionLoading } = useAttendance();
+  const { isAdmin } = useAuth();
   const [checkIns, setCheckIns] = useState<AssetRecord[]>([]);
   const [search, setSearch] = useState('');
   const [activeStatus, setActiveStatus] = useState('all');
@@ -140,22 +142,22 @@ export const AssetsPage = () => {
   const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="w-full min-h-screen bg-[#f8faf9]">
-      <div className="max-w-[1600px] mx-auto px-6 py-10">
+    <div className="w-full min-h-screen bg-[#f5f7f6]">
+      <div className="px-4 sm:px-6 lg:px-12 py-4 sm:py-8 lg:py-10">
 
         {/* Header Title Section */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
           <div>
-            <p className="text-xs font-bold tracking-widest text-green-800 uppercase mb-2 text-[#2d5a27]">
+            <p className="text-[10px] sm:text-xs font-bold tracking-widest text-green-600 uppercase mb-1 sm:mb-2">
               SYSTEM RECORDS
             </p>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Logs Data</h1>
-            <p className="text-[15px] text-gray-500 max-w-xl leading-relaxed">
+            <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-1 sm:mb-2">Logs Data</h1>
+            <p className="text-sm sm:text-[15px] text-gray-500 max-w-xl leading-relaxed">
               Central repository for all scanned agricultural assets, historical data tracking, and geographical verification.
             </p>
           </div>
 
-          <button className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-800 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-all shadow-sm">
+          <button className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-800 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-all shadow-sm" onClick={() => alert("Masih dalam pengembangan")}>
             <Download size={18} className="text-gray-600" />
             Export Data
           </button>
@@ -197,14 +199,62 @@ export const AssetsPage = () => {
             </select>
             <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
           </div>
-
-          <button className="px-6 py-3 bg-[#2f5c35] text-white rounded-xl text-sm font-semibold hover:bg-[#234528] transition-all shadow-sm min-w-fit">
-            Apply Filters
-          </button>
         </div>
 
-        {/* Table Container */}
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm mb-10">
+        {/* Mobile View: Card List */}
+        <div className="md:hidden space-y-4 mb-10">
+          {isLoading ? (
+            <div className="py-20 text-center">
+              <Loader2 className="w-8 h-8 text-green-500 animate-spin mx-auto" />
+            </div>
+          ) : paginatedData.length === 0 ? (
+            <div className="py-20 text-center bg-white rounded-2xl border border-dashed text-gray-500">
+              No scan records found.
+            </div>
+          ) : (
+            paginatedData.map((asset) => {
+              const status = getStatusDisplay(asset.condition);
+              const { dateStr, timeStr } = formatDate(asset.created_at);
+              return (
+                <div
+                  key={asset.id}
+                  onClick={() => setViewingAsset(asset)}
+                  className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-4 active:scale-[0.98] transition-all"
+                >
+                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0">
+                    <img src={asset.photo_url} alt="" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-xs font-bold text-green-700">#{asset.barcode_id}</span>
+                      <span className={`px-2 py-0.5 text-[9px] font-bold rounded-full ${status.color}`}>
+                        {status.label}
+                      </span>
+                    </div>
+                    <h3 className="font-bold text-gray-900 text-[15px] truncate mb-1">
+                      {asset.asset_name || 'Unnamed Batch'}
+                    </h3>
+                    <div className="flex items-center gap-2 text-[11px] text-gray-400 font-medium">
+                      <span>{dateStr}</span>
+                      <span>•</span>
+                      <span>{getGrowthAge(asset.created_at)}</span>
+                    </div>
+                  </div>
+                  {isAdmin && (
+                    <div className="flex flex-col gap-2" onClick={e => e.stopPropagation()}>
+                      <button onClick={() => { setEditingAsset(asset); setShowEditModal(true); }} className="p-2 text-gray-400 hover:text-green-600 bg-gray-50 rounded-lg">
+                        <Edit2 size={14} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop View: Table Container */}
+        <div className="hidden md:block bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm mb-10">
           <div className="overflow-x-auto min-h-[400px]">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -233,7 +283,7 @@ export const AssetsPage = () => {
                 ) : (
                   paginatedData.map((asset) => {
                     const status = getStatusDisplay(asset.condition);
-                    const { dateStr, timeStr } = formatDate(asset.created_at);
+                    formatDate(asset.created_at);
                     return (
                       <tr
                         key={asset.id}
@@ -242,11 +292,11 @@ export const AssetsPage = () => {
                       >
                         <td className="px-6 py-4">
                           <div className="flex flex-col gap-1">
-                            <span className="text-sm font-bold text-[#2d5a27]">
+                            <span className="text-sm font-bold text-green-700">
                               #{asset.barcode_id}
                             </span>
-                            <span className="text-[9px] font-black text-white bg-indigo-500 px-1.5 py-0.5 rounded-md w-fit uppercase tracking-tighter">
-                              {allRawRecords.filter(r => r.barcode_id === asset.barcode_id).length} Entries
+                            <span className="text-[9px] font-bold text-white bg-indigo-500 px-1.5 py-0.5 rounded-md w-fit uppercase tracking-wider">
+                              Batch Record
                             </span>
                           </div>
                         </td>
@@ -293,40 +343,35 @@ export const AssetsPage = () => {
                             <span className="text-sm font-medium text-gray-800">
                               Sector {asset.barcode_id.substring(0, 3)}
                             </span>
-                            <span className="text-[13px] text-gray-500 mt-0.5 italic">
+                            <span className="text-[13px] text-gray-500 mt-0.5">
                               {asset.address || `${asset.lat.toFixed(4)}, ${asset.lng.toFixed(4)}`}
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-col">
-                            <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                              <span className="text-sm font-bold text-gray-900 leading-none">{dateStr}</span>
-                            </div>
-                            <span className="text-[11px] font-black text-gray-400 mt-1.5 uppercase tracking-widest pl-4">
-                              {timeStr} • Updated
-                            </span>
-                          </div>
-                        </td>
                         <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-end gap-2 transition-opacity">
-                            <button
-                              onClick={() => {
-                                setEditingAsset(asset);
-                                setShowEditModal(true);
-                              }}
-                              className="p-2 text-gray-400 hover:text-[#2d5a27] hover:bg-green-50 rounded-lg transition-colors"
-                            >
-                              <Edit2 size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(asset.id)}
-                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
+                          {isAdmin ? (
+                            <div className="flex items-center justify-end gap-2 transition-opacity">
+                              <button
+                                onClick={() => {
+                                  setEditingAsset(asset);
+                                  setShowEditModal(true);
+                                }}
+                                className="p-2 text-gray-400 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(asset.id)}
+                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                              V/O Mode
+                            </span>
+                          )}
                         </td>
                       </tr>
                     );
@@ -357,7 +402,7 @@ export const AssetsPage = () => {
                     key={i}
                     onClick={() => setCurrentPage(i + 1)}
                     className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-bold transition-colors ${currentPage === i + 1
-                      ? 'bg-[#2f5c35] text-white'
+                      ? 'bg-green-600 text-white'
                       : 'text-gray-600 hover:bg-gray-100'
                       }`}
                   >
@@ -421,7 +466,7 @@ export const AssetsPage = () => {
                         type="button"
                         onClick={() => setEditingAsset({ ...editingAsset, condition })}
                         className={`px-3 py-2.5 rounded-xl text-sm font-bold capitalize transition-all border ${editingAsset.condition === condition
-                          ? 'bg-[#2f5c35] text-white border-[#2f5c35]'
+                          ? 'bg-green-600 text-white border-green-600'
                           : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                           }`}
                       >
@@ -470,7 +515,7 @@ export const AssetsPage = () => {
                   <button
                     type="submit"
                     disabled={actionLoading}
-                    className="flex-1 py-3 bg-[#2f5c35] text-white rounded-xl text-sm font-bold hover:bg-[#234528] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
+                    className="flex-1 py-3 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
                   >
                     {actionLoading ? <Loader2 size={16} className="animate-spin" /> : 'Save Changes'}
                   </button>
@@ -529,26 +574,26 @@ export const AssetsPage = () => {
                   <section className="space-y-6">
                     <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                       <h3 className="text-[13px] font-bold text-gray-900 uppercase tracking-widest">Growth & Health Intel</h3>
-                      <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded tracking-widest uppercase italic">Field Sync Data</span>
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded tracking-widest uppercase">Field Sync Data</span>
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {[
-                        { l: 'Tinggi', v: `${viewingAsset.tinggi_tanaman || 0} cm`, i: <Sprout size={14}/> },
-                        { l: 'Batang', v: `${viewingAsset.diameter_batang || 0} mm`, i: <Sprout size={14}/> },
-                        { l: 'Daun', v: `${viewingAsset.jumlah_daun || 0} Helai`, i: <Sprout size={14}/> },
-                        { l: 'Kanopi', v: `${viewingAsset.lebar_kanopi || 0} cm`, i: <Sprout size={14}/> },
-                        { l: 'Fase', v: viewingAsset.fase_pertumbuhan || '-', i: <Sprout size={14}/> },
-                        { l: 'Hama', v: viewingAsset.status_hama || '-', i: <AlertTriangle size={14}/> },
-                        { l: 'pH Tanah', v: viewingAsset.ph_tanah || 'N/A', i: <Sprout size={14}/> },
-                        { l: 'Kelembapan', v: viewingAsset.kelembapan_tanah || 'N/A', i: <Sprout size={14}/> }
+                        { l: 'Tinggi', v: `${viewingAsset.tinggi_tanaman || 0} cm`, i: <Sprout size={14} /> },
+                        { l: 'Batang', v: `${viewingAsset.diameter_batang || 0} mm`, i: <Sprout size={14} /> },
+                        { l: 'Daun', v: `${viewingAsset.jumlah_daun || 0} Helai`, i: <Sprout size={14} /> },
+                        { l: 'Kanopi', v: `${viewingAsset.lebar_kanopi || 0} cm`, i: <Sprout size={14} /> },
+                        { l: 'Fase', v: viewingAsset.fase_pertumbuhan || '-', i: <Sprout size={14} /> },
+                        { l: 'Hama', v: viewingAsset.status_hama || '-', i: <AlertTriangle size={14} /> },
+                        { l: 'pH Tanah', v: viewingAsset.ph_tanah || 'N/A', i: <Sprout size={14} /> },
+                        { l: 'Kelembapan', v: viewingAsset.kelembapan_tanah || 'N/A', i: <Sprout size={14} /> }
                       ].map((m, i) => (
                         <div key={i} className="p-4 bg-gray-50/50 border border-gray-100 rounded-2xl flex flex-col gap-1 transition-all hover:bg-white hover:shadow-md">
                           <div className="flex items-center gap-2 text-gray-400 capitalize">
                             {m.i}
                             <span className="text-[9px] font-bold uppercase tracking-wider">{m.l}</span>
                           </div>
-                          <p className="text-sm font-black text-gray-900 uppercase tracking-tight italic">{m.v}</p>
+                          <p className="text-sm font-bold text-gray-900">{m.v}</p>
                         </div>
                       ))}
                     </div>
@@ -565,11 +610,11 @@ export const AssetsPage = () => {
                         </div>
                       </div>
                     )}
-                    
+
                     {viewingAsset.notes && (
                       <div className="p-5 bg-stone-50 rounded-2xl border border-stone-100">
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Observations</label>
-                        <p className="text-sm text-stone-600 leading-relaxed italic">"{viewingAsset.notes}"</p>
+                        <p className="text-sm text-gray-600 leading-relaxed">{viewingAsset.notes}</p>
                       </div>
                     )}
                   </section>
@@ -578,14 +623,14 @@ export const AssetsPage = () => {
                   <section className="space-y-4">
                     <h3 className="text-[13px] font-bold text-gray-900 uppercase tracking-widest border-b border-gray-100 pb-2">Full Documentation</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       <div className="aspect-video w-full rounded-2xl overflow-hidden bg-gray-100 border border-gray-100 relative group">
+                      <div className="aspect-video w-full rounded-2xl overflow-hidden bg-gray-100 border border-gray-100 relative group">
                         <img src={viewingAsset.photo_url} className="w-full h-full object-cover" alt="Overview" />
                         <div className="absolute top-4 left-4 px-3 py-1 bg-black/50 backdrop-blur-md text-white text-[9px] font-black uppercase rounded-lg">Overview Photo</div>
                       </div>
                       {viewingAsset.photo_detail_url && (
                         <div className="aspect-video w-full rounded-2xl overflow-hidden bg-gray-100 border border-gray-100 relative group">
                           <img src={viewingAsset.photo_detail_url} className="w-full h-full object-cover" alt="Detail" />
-                           <div className="absolute top-4 left-4 px-3 py-1 bg-black/50 backdrop-blur-md text-white text-[9px] font-black uppercase rounded-lg">Detail / Close-up</div>
+                          <div className="absolute top-4 left-4 px-3 py-1 bg-black/50 backdrop-blur-md text-white text-[9px] font-black uppercase rounded-lg">Detail / Close-up</div>
                         </div>
                       )}
                     </div>
@@ -662,7 +707,7 @@ export const AssetsPage = () => {
                   </div>
 
                   <div className="pt-4 border-t border-gray-200 mt-auto">
-                    <p className="text-[10px] text-gray-400 leading-relaxed font-medium italic">
+                    <p className="text-[10px] text-gray-400 leading-relaxed font-medium">
                       * Timeline shows all periodic growth updates recorded via the Scanner Module for this specific unit ID.
                     </p>
                   </div>
@@ -672,25 +717,27 @@ export const AssetsPage = () => {
               {/* Modal Footer (Reference Styles) */}
               <div className="px-8 py-5 border-t border-gray-100 bg-white flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
-                  <p className="text-xs text-gray-500 font-medium italic">Learn more about <span className="text-blue-600 underline cursor-pointer">Updating Plant Records</span></p>
+                  <p className="text-xs text-gray-500 font-medium">Learn more about <span className="text-blue-600 underline cursor-pointer">Updating Plant Records</span></p>
                 </div>
                 <div className="flex items-center gap-3 w-full md:w-auto">
                   <button
                     onClick={() => setViewingAsset(null)}
                     className="flex-1 md:flex-none px-6 py-3 text-sm font-bold text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all"
                   >
-                    Cancel
+                    Close
                   </button>
-                  <button
-                    onClick={() => {
-                      setEditingAsset(viewingAsset);
-                      setShowEditModal(true);
-                      setViewingAsset(null);
-                    }}
-                    className="flex-1 md:flex-none px-8 py-3 bg-[#EE7D40] text-white rounded-xl text-sm font-bold hover:bg-[#d96c32] shadow-lg shadow-orange-100 transition-all active:scale-95 flex items-center justify-center gap-2"
-                  >
-                    Update Plant Metadata
-                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => {
+                        setEditingAsset(viewingAsset);
+                        setShowEditModal(true);
+                        setViewingAsset(null);
+                      }}
+                      className="flex-1 md:flex-none px-8 py-3 bg-[#EE7D40] text-white rounded-xl text-sm font-bold hover:bg-[#d96c32] shadow-lg shadow-orange-100 transition-all active:scale-95 flex items-center justify-center gap-2"
+                    >
+                      Update Plant Metadata
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

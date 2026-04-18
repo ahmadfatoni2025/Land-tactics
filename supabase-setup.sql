@@ -33,6 +33,10 @@ CREATE TABLE IF NOT EXISTS public.check_ins (
   kelembapan_tanah TEXT,
   kondisi_gulma TEXT,
   ph_tanah DOUBLE PRECISION,
+  suhu_udara DOUBLE PRECISION,
+  intensitas_cahaya DOUBLE PRECISION,
+  metode_tanam TEXT,
+  target_panen DATE,
   tindakan JSONB DEFAULT '[]'::jsonb,
   
   created_at TIMESTAMPTZ DEFAULT now()
@@ -61,6 +65,12 @@ BEGIN
         ALTER TABLE public.check_ins ADD COLUMN kondisi_gulma TEXT;
         ALTER TABLE public.check_ins ADD COLUMN ph_tanah DOUBLE PRECISION;
         ALTER TABLE public.check_ins ADD COLUMN tindakan JSONB DEFAULT '[]'::jsonb;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='check_ins' AND column_name='suhu_udara') THEN
+        ALTER TABLE public.check_ins ADD COLUMN suhu_udara DOUBLE PRECISION;
+        ALTER TABLE public.check_ins ADD COLUMN intensitas_cahaya DOUBLE PRECISION;
+        ALTER TABLE public.check_ins ADD COLUMN metode_tanam TEXT;
+        ALTER TABLE public.check_ins ADD COLUMN target_panen DATE;
     END IF;
 END $$;
 

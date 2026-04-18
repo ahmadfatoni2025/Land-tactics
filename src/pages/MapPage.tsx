@@ -46,7 +46,7 @@ export const MapPage = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-[#F0F4F8] font-sans">
+    <div className="flex h-screen lg:h-screen overflow-hidden bg-[#F0F4F8] font-sans">
       {/* --- MAIN CONTENT AREA --- */}
       <main className="flex-1 relative flex flex-col overflow-hidden">
 

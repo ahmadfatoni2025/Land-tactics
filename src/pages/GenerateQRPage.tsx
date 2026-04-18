@@ -2,6 +2,8 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAttendance, type AssetData } from '../hooks/useAttendance';
+import { useAuth } from '../hooks/useAuth';
+import { Navigate } from 'react-router-dom';
 import {
   MapPin, Camera, Upload, Download, Loader2,
   CheckCircle2, RotateCcw, ChevronRight,
@@ -20,6 +22,8 @@ interface PlantForm {
   agronomicNotes: string;
   plantingDate: string;
   plantPopulation: string;
+  plantingMethod: string;
+  targetHarvestDate: string;
 }
 
 const initialForm: PlantForm = {
@@ -33,6 +37,8 @@ const initialForm: PlantForm = {
   agronomicNotes: '',
   plantingDate: new Date().toISOString().split('T')[0],
   plantPopulation: '',
+  plantingMethod: 'Konvensional',
+  targetHarvestDate: '',
 };
 
 const commodities = ['Tanaman Pangan', 'Hortikultura', 'Perkebunan', 'Tanaman Hias', 'Tanaman Obat', 'Sarana Produksi (Saprodi)', 'Alat & Mesin (Alsintan)'];
@@ -41,7 +47,9 @@ import { Leaf, Sprout } from 'lucide-react';
 
 export const GenerateQRPage = () => {
   const navigate = useNavigate();
+  const { isAdmin, loading: authLoading } = useAuth();
   const { saveAsset, loading } = useAttendance();
+
   const [form, setForm] = useState<PlantForm>(initialForm);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -49,15 +57,6 @@ export const GenerateQRPage = () => {
   const [coords, setCoords] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
   const [locLoading, setLocLoading] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
-
-  // Auto-generate Batch ID
-  const generateId = () => {
-    const prefix = form.commodity ? form.commodity.toUpperCase().slice(0, 3) : 'PLT';
-    const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
-    setForm(f => ({ ...f, batchId: `${prefix}-${rand}` }));
-  };
-
-  const updateField = (field: keyof PlantForm, value: any) => setForm(f => ({ ...f, [field]: value }));
 
   // Ambil lokasi saat ini
   const refreshLocation = useCallback(() => {
@@ -82,6 +81,18 @@ export const GenerateQRPage = () => {
   useEffect(() => {
     refreshLocation();
   }, [refreshLocation]);
+
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center font-bold text-stone-400 italic animate-pulse">Memuat Otorisasi...</div>;
+  if (!isAdmin) return <Navigate to="/" />;
+
+  // Auto-generate Batch ID
+  const generateId = () => {
+    const prefix = form.commodity ? form.commodity.toUpperCase().slice(0, 3) : 'PLT';
+    const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
+    setForm(f => ({ ...f, batchId: `${prefix}-${rand}` }));
+  };
+
+  const updateField = (field: keyof PlantForm, value: any) => setForm(f => ({ ...f, [field]: value }));
 
 
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -128,6 +139,8 @@ export const GenerateQRPage = () => {
       condition: form.growthStatus,
       assigned_to: form.fieldManager,
       notes: form.agronomicNotes,
+      metode_tanam: form.plantingMethod,
+      target_panen: form.targetHarvestDate || undefined,
       address: form.location,
     };
 
@@ -206,13 +219,13 @@ export const GenerateQRPage = () => {
   }
 
   return (
-    <div className="w-full min-h-screen bg-[#f8faf9]">
-      <div className="max-w-[1600px] mx-auto px-6 py-10">
+    <div className="w-full min-h-screen bg-[#f5f7f6]">
+      <div className="px-6 lg:px-8 py-6">
         
         {/* Header Title Section - Consistent with AssetsPage & ScannerPage */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-10">
           <div>
-            <p className="text-xs font-bold tracking-widest text-[#2d5a27] uppercase mb-2">
+            <p className="text-xs font-bold tracking-widest text-green-600 uppercase mb-2">
               REGISTRATION MODULE
             </p>
             <h1 className="text-4xl font-bold text-gray-900 mb-2">Batch Registration</h1>
@@ -313,7 +326,7 @@ export const GenerateQRPage = () => {
                 </div>
               </div>
 
-              {/* Row 3: Planting Date & Population */}
+              {/* Row 3: Planting Date & Target Harvest */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                 <div className="space-y-3">
                   <label className="text-xs md:text-sm font-black text-[#111827] ml-0.5 uppercase tracking-widest opacity-70">Tanggal Tanam</label>
@@ -323,6 +336,38 @@ export const GenerateQRPage = () => {
                     onChange={e => updateField('plantingDate', e.target.value)}
                     className="w-full bg-[#FAFAFA] border-2 border-gray-100 rounded-2xl px-5 md:px-6 py-4 md:py-5 text-sm md:text-base font-bold text-gray-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/5 focus:bg-white focus:border-emerald-500 transition-all"
                   />
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-xs md:text-sm font-black text-[#111827] ml-0.5 uppercase tracking-widest opacity-70">Target/Estimasi Panen</label>
+                  <input
+                    type="date"
+                    value={form.targetHarvestDate}
+                    onChange={e => updateField('targetHarvestDate', e.target.value)}
+                    className="w-full bg-[#FAFAFA] border-2 border-gray-100 rounded-2xl px-5 md:px-6 py-4 md:py-5 text-sm md:text-base font-bold text-gray-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/5 focus:bg-white focus:border-emerald-500 transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Row 4: Planting Method & Population */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                <div className="space-y-3">
+                  <label className="text-xs md:text-sm font-black text-[#111827] ml-0.5 uppercase tracking-widest opacity-70">Metode Tanam</label>
+                  <div className="relative group">
+                    <select
+                      value={form.plantingMethod}
+                      onChange={e => updateField('plantingMethod', e.target.value)}
+                      className="w-full bg-[#FAFAFA] border-2 border-gray-100 rounded-2xl px-5 md:px-6 py-4 md:py-5 text-sm md:text-base font-bold text-gray-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/5 focus:bg-white focus:border-emerald-500 transition-all appearance-none"
+                    >
+                      <option value="Konvensional">Konvensional</option>
+                      <option value="Organik">Organik</option>
+                      <option value="Hidroponik">Hidroponik</option>
+                      <option value="Greenhouse">Greenhouse</option>
+                    </select>
+                    <div className="absolute right-5 md:right-6 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                      <ChevronDown size={18} />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-3">
@@ -352,10 +397,10 @@ export const GenerateQRPage = () => {
                     />
                     <MapPin className="absolute right-5 md:right-6 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" size={20} />
                   </div>
-                  <button
+            <button
                     onClick={refreshLocation}
                     disabled={locLoading}
-                    className="h-[56px] md:h-auto px-6 bg-white border-2 border-stone-100 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase text-teal hover:border-teal/30 transition-all shadow-sm active:scale-95"
+                    className="h-[56px] md:h-auto px-6 bg-white border-2 border-gray-100 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase text-green-700 hover:border-green-200 transition-all shadow-sm active:scale-95"
                   >
                     {locLoading ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}
                     {coords ? `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}` : 'Ambil Koordinat'}
@@ -432,7 +477,7 @@ export const GenerateQRPage = () => {
 
               {/* QR Preview Section */}
               {form.batchId && (
-                <div className="p-8 md:p-10 bg-emerald-900 rounded-[32px] md:rounded-[48px] border border-emerald-800 flex flex-col md:flex-row items-center gap-8 md:gap-10 shadow-2xl shadow-emerald-200/50 animate-in fade-in zoom-in-95 duration-500">
+                <div className="p-8 md:p-10 bg-green-800 rounded-[32px] md:rounded-[48px] border border-green-700 flex flex-col md:flex-row items-center gap-8 md:gap-10 shadow-2xl shadow-green-200/30 animate-in fade-in zoom-in-95 duration-500">
                   <div ref={qrRef} className="bg-white p-5 rounded-[24px] shadow-2xl shrink-0 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
                     <QRCodeSVG value={qrPayload} size={140} className="md:w-[160px] md:h-[160px]" level="H" includeMargin />
                   </div>
@@ -473,7 +518,7 @@ export const GenerateQRPage = () => {
             <button
               onClick={handleSubmit}
               disabled={!isComplete || loading}
-              className="w-full md:w-auto px-12 py-5 bg-emerald-700 text-white font-black text-sm md:text-base rounded-2xl md:rounded-[32px] hover:bg-emerald-800 transition-all shadow-xl shadow-emerald-200 active:scale-95 disabled:opacity-30 disabled:grayscale disabled:shadow-none flex items-center justify-center gap-3 order-1 md:order-2 uppercase tracking-widest"
+              className="w-full md:w-auto px-12 py-5 bg-green-600 text-white font-bold text-sm md:text-base rounded-2xl md:rounded-[32px] hover:bg-green-700 transition-all shadow-xl shadow-green-200/40 active:scale-95 disabled:opacity-30 disabled:grayscale disabled:shadow-none flex items-center justify-center gap-3 order-1 md:order-2 uppercase tracking-widest"
             >
               {loading ? <Loader2 className="animate-spin" size={20} /> : (
                 <>

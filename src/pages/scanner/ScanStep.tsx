@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { X, Upload, Camera, ChevronLeft, Zap, Sparkles } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { Link } from 'react-router-dom';
 
 interface ScanStepProps {
   onResult: (text: string) => void;
@@ -86,48 +87,25 @@ export const ScanStep = ({ onResult, onFileSelect, onClose, error }: ScanStepPro
 
         {/* Top Navigation */}
         <div className="flex justify-between items-start pointer-events-auto">
-          <button
+          <Link to="/"
             onClick={onClose}
             className="flex items-center gap-3 px-6 py-3 bg-black/40 backdrop-blur-2xl rounded-2xl text-white border border-white/10 hover:bg-black/60 transition-all font-bold text-xs uppercase tracking-widest"
           >
             <ChevronLeft size={18} />
-            / Pemindai
-          </button>
+            Kembali
+          </Link>
 
-          <div className="flex gap-2">
-            <div className="p-3 bg-white/10 backdrop-blur-2xl rounded-2xl border border-white/10 text-emerald-400">
-              <Zap size={20} />
-            </div>
-            <div className="p-3 bg-white/10 backdrop-blur-2xl rounded-2xl border border-white/10 text-white/50">
-              <Camera size={20} />
-            </div>
-          </div>
         </div>
 
         {/* Center Target Area */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           {/* Viewport Brackets */}
           <div className="relative w-[70vw] h-[70vw] max-w-[320px] max-h-[320px]">
-            {/* 4 Corner Accents */}
-            <div className="absolute top-0 left-0 w-16 h-16 border-t-[6px] border-l-[6px] border-emerald-400 rounded-tl-[40px] shadow-[0_0_20px_rgba(52,211,153,0.5)]"></div>
-            <div className="absolute top-0 right-0 w-16 h-16 border-t-[6px] border-r-[6px] border-emerald-400 rounded-tr-[40px] shadow-[0_0_20px_rgba(52,211,153,0.5)]"></div>
-            <div className="absolute bottom-0 left-0 w-16 h-16 border-b-[6px] border-l-[6px] border-emerald-400 rounded-bl-[40px] shadow-[0_0_20px_rgba(52,211,153,0.5)]"></div>
-            <div className="absolute bottom-0 right-0 w-16 h-16 border-b-[6px] border-r-[6px] border-emerald-400 rounded-br-[40px] shadow-[0_0_20px_rgba(52,211,153,0.5)]"></div>
 
             {/* Animated Inner Scanner Line */}
             {isActive && (
-              <div className="absolute inset-x-0 h-[2px] bg-emerald-400 shadow-[0_0_30px_rgba(52,211,153,1)] animate-scan-slow"></div>
+              <div className="absolute inset-x-0 h-[2px] bg-white shadow-[0_0_70px_rgba(52,211,153,1)] animate-scan-slow"></div>
             )}
-          </div>
-
-          <div className="mt-12 text-center">
-            <div className="flex items-center justify-center gap-3 mb-3">
-              <Sparkles className="text-emerald-400" size={16} />
-              <h2 className="text-xl font-black text-white uppercase italic tracking-tighter">Unit Identification</h2>
-            </div>
-            <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.3em] max-w-[240px] leading-relaxed">
-              Align the QR code within the perimeter for automated bio-data retrieval
-            </p>
           </div>
         </div>
 
@@ -140,10 +118,6 @@ export const ScanStep = ({ onResult, onFileSelect, onClose, error }: ScanStepPro
             <input type="file" accept="image/*" className="hidden" onChange={onFileSelect} />
           </label>
 
-          {/* Mock Camera Trigger */}
-          <div className="w-20 h-20 rounded-full border-4 border-white/20 flex items-center justify-center">
-            <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-full border border-white/20"></div>
-          </div>
         </div>
       </div>
 
@@ -173,11 +147,6 @@ export const ScanStep = ({ onResult, onFileSelect, onClose, error }: ScanStepPro
           </div>
         </div>
       )}
-
-      {/* Aesthetic Metadata */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-white/5 backdrop-blur-md border border-white/10 rounded-full z-20 opacity-30">
-        <span className="text-[8px] font-black text-white uppercase tracking-[0.5em] italic">System v4.2.0 • GeoAgri Ops</span>
-      </div>
     </div>
   );
 };
