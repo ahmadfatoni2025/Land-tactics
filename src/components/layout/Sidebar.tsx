@@ -1,7 +1,7 @@
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Map as MapIcon, Scan, Boxes, Plus, LogIn, LogOut,
-  HelpCircle, Settings, BarChart3, ChevronRight, Menu, X, Leaf
+  HelpCircle, Settings, BarChart3, Menu, X, Leaf
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../hooks/useAuth';
