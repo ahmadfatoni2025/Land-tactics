@@ -47,9 +47,19 @@ export const ScanStep = ({ onResult, onFileSelect, onClose, error }: ScanStepPro
           },
           (decodedText) => {
             if (isMounted) {
-              scanner.stop().then(() => {
+              const currentScanner = scannerRef.current;
+              scannerRef.current = null;
+              if (currentScanner) {
+                try {
+                  currentScanner.stop().then(() => {
+                    onResult(decodedText);
+                  }).catch(() => onResult(decodedText));
+                } catch (e) {
+                  onResult(decodedText);
+                }
+              } else {
                 onResult(decodedText);
-              }).catch(() => onResult(decodedText));
+              }
             }
           },
           () => { }
@@ -72,7 +82,10 @@ export const ScanStep = ({ onResult, onFileSelect, onClose, error }: ScanStepPro
     return () => {
       isMounted = false;
       if (scannerRef.current) {
-        scannerRef.current.stop().catch(() => { });
+        try {
+          scannerRef.current.stop().catch(() => { });
+        } catch (e) {}
+        scannerRef.current = null;
       }
     };
   }, [onResult]);

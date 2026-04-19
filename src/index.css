@@ -2,27 +2,21 @@
 @import url('https://fonts.cdnfonts.com/css/google-sans');
 
 @theme {
-  --font-sans: 'Product Sans', 'Google Sans', sans-serif;
+  --font-sans: 'Product Sans', 'Google Sans', 'Inter', sans-serif;
   --color-cream: #f8faf9;
   --color-cream-dark: #eef2ef;
-  --color-primary: #4caf50;
-  --color-primary-light: #81c784;
-  --color-primary-dark: #388e3c;
-  --color-primary-50: #e8f5e9;
-  --color-primary-100: #c8e6c9;
-  --color-primary-600: #43a047;
-  --color-primary-700: #388e3c;
-  --color-primary-800: #2e7d32;
-  --color-primary-900: #1b5e20;
-  --color-accent: #66bb6a;
-  --color-sidebar-bg: #ffffff;
-  --color-sidebar-hover: #f1f8f2;
-  --color-sidebar-active: #e8f5e9;
-  --color-teal: #1a4d3e;
-  --color-teal-light: #2a6b55;
-  --color-teal-dark: #0f3529;
-  --color-amber: #e8a838;
-  --color-amber-light: #f5c460;
+  --color-primary: #10b981;
+  --color-primary-light: #34d399;
+  --color-primary-dark: #059669;
+  --color-bg-main: #ffffff;
+  --color-bg-secondary: #f9fafb;
+  --color-text-main: #111827;
+  --color-text-muted: #6b7280;
+  --color-purple-deep: #4f46e5;
+  --color-purple-light: #818cf8;
+  --glass-bg: rgba(255, 255, 255, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 10px -2px rgba(0, 0, 0, 0.1);
 }
 
 @layer base {
@@ -132,16 +126,31 @@
   animation: scan-slow 3s ease-in-out infinite;
 }
 
-@layer utilities {
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
+
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--card-shadow);
+}
+
+.premium-blur {
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+
+.map-overlay-panel {
+  background: rgba(17, 24, 39, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
 
 /* Base Leaflet adjustments for modern feel */
 .leaflet-popup-content-wrapper {
@@ -163,4 +172,27 @@
 /* Sidebar transition */
 .sidebar-transition {
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+}
+
+/* Map Tooltip Premium Styles */
+.custom-tooltip-base {
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px -10px rgba(0, 0, 0, 0.15) !important;
+  padding: 8px 12px !important;
+  border-left: 4px solid #10b981 !important;
+}
+
+.custom-tooltip-base::before {
+  display: none !important;
+}
+
+.leaflet-tooltip-top:before, 
+.leaflet-tooltip-bottom:before, 
+.leaflet-tooltip-left:before, 
+.leaflet-tooltip-right:before {
+  border: none !important;
 }

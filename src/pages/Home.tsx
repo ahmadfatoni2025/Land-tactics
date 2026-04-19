@@ -1,11 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Leaf, 
-  ChevronRight, 
-  Map as MapIcon, 
-  QrCode, 
-  ShieldCheck, 
+import {
+  Leaf,
+  ChevronRight,
+  Map as MapIcon,
+  QrCode,
+  ShieldCheck,
   BarChart3,
   ArrowUpRight,
   Activity
@@ -32,28 +32,28 @@ export const Home = () => {
                 <Sparkles size={14} />
                 Next-Gen AgriTech
               </div>
-              
+
               <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-gray-900 leading-[1.1] tracking-tight">
-                Traceability <br className="hidden sm:block" /> 
+                Traceability <br className="hidden sm:block" />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-500">
                   Meets Integrity
                 </span>
               </h1>
-              
+
               <p className="text-base sm:text-lg text-gray-500 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-medium">
-                GeoAgri adalah platform pemantauan aset pertanian berbasis GIS dan QR. 
+                GeoAgri adalah platform pemantauan aset pertanian berbasis GIS dan QR.
                 Sistematisasi data lapangan, validasi lokasi secara real-time, dan monitor pertumbuhan tanaman dalam satu genggaman.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                <button 
+                <button
                   onClick={() => navigate(isLoggedIn ? '/dashboard' : '/login')}
                   className="w-full sm:w-auto px-8 py-4 bg-gray-900 text-white rounded-2xl font-bold text-sm uppercase tracking-widest shadow-xl shadow-gray-200 hover:bg-black transition-all flex items-center justify-center gap-2 group"
                 >
                   {isLoggedIn ? 'Buka Dashboard' : 'Mulai Sekarang'}
                   <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
                 </button>
-                <button 
+                <button
                   onClick={() => {
                     const el = document.getElementById('features');
                     el?.scrollIntoView({ behavior: 'smooth' });
@@ -63,19 +63,19 @@ export const Home = () => {
                   Pelajari Fitur
                 </button>
               </div>
-              
+
               {/* Quick Stats */}
               <div className="pt-8 flex flex-wrap justify-center lg:justify-start gap-8 sm:gap-12 text-gray-400">
                 <div className="flex flex-col">
-                  <span className="text-2xl font-bold text-gray-900 italic">2.4k+</span>
+                  <span className="text-2xl font-bold text-gray-900">2.4k+</span>
                   <span className="text-[10px] uppercase font-bold tracking-widest">Aset Terdaftar</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-2xl font-bold text-gray-900 italic">100%</span>
+                  <span className="text-2xl font-bold text-gray-900">100%</span>
                   <span className="text-[10px] uppercase font-bold tracking-widest">Akurasi GIS</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-2xl font-bold text-gray-900 italic">24/7</span>
+                  <span className="text-2xl font-bold text-gray-900">24/7</span>
                   <span className="text-[10px] uppercase font-bold tracking-widest">Monitoring</span>
                 </div>
               </div>
@@ -99,7 +99,7 @@ export const Home = () => {
                       </div>
                       <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold">STABIL</span>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
                         <Activity size={18} className="text-green-500 mb-2" />
@@ -114,8 +114,8 @@ export const Home = () => {
                     </div>
 
                     <div className="p-4 bg-stone-900 rounded-2xl flex items-center justify-between text-white">
-                       <span className="text-sm font-bold tracking-tight">Sistem Aktif</span>
-                       <ShieldCheck className="text-emerald-400" size={20} />
+                      <span className="text-sm font-bold tracking-tight">Sistem Aktif</span>
+                      <ShieldCheck className="text-emerald-400" size={20} />
                     </div>
                   </div>
                 </div>
@@ -130,30 +130,30 @@ export const Home = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight mb-4">
-               Ekosistem Digital Pertanian
+              Ekosistem Digital Pertanian
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto font-medium">
-               Teknologi terintegrasi untuk menjamin kepastian data dari lahan hingga ke tangan pemangku kepentingan.
+              Teknologi terintegrasi untuk menjamin kepastian data dari lahan hingga ke tangan pemangku kepentingan.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-            <FeatureCard 
+            <FeatureCard
               icon={<QrCode size={24} className="text-indigo-600" />}
               title="Identity Hub"
               description="Satu aset satu identitas. Gunakan QR Code fisik untuk akses instan log data tanaman."
             />
-            <FeatureCard 
+            <FeatureCard
               icon={<MapIcon size={24} className="text-blue-600" />}
               title="GIS Tracking"
               description="Geotagging otomatis saat input data menjamin validitas lokasi pengerjaan lapangan."
             />
-            <FeatureCard 
+            <FeatureCard
               icon={<BarChart3 size={24} className="text-emerald-600" />}
               title="Smart Analysis"
               description="Visualisasi grafik pertumbuhan dan kesehatan aset secara komprehensif."
             />
-            <FeatureCard 
+            <FeatureCard
               icon={<ShieldCheck size={24} className="text-orange-600" />}
               title="Data Integrity"
               description="Verifikasi bertingkat untuk memastikan akurasi data mandor dan petugas."
@@ -170,7 +170,7 @@ export const Home = () => {
             Siap Membangun Masa Depan <br className="hidden sm:block" /> Pertanian yang Terukur?
           </h2>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button 
+            <button
               onClick={() => navigate('/signup')}
               className="w-full sm:w-auto px-10 py-5 bg-white text-[#1a4d3e] rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-emerald-50 transition-all shadow-2xl active:scale-95"
             >
@@ -183,30 +183,12 @@ export const Home = () => {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="px-4 sm:px-6 lg:px-12 py-12 bg-white border-t border-gray-100">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-3">
-             <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center text-white">
-                <Leaf size={20} />
-             </div>
-             <span className="text-xl font-bold text-gray-900 tracking-tight">GeoAgri.</span>
-          </div>
-          <p className="text-gray-400 text-sm font-medium">
-            © 2026 GeoAgri Systems. Built for Future Agriculture.
-          </p>
-          <div className="flex items-center gap-6 text-sm font-bold text-gray-500 uppercase tracking-widest">
-            <a href="#" className="hover:text-green-600 transition-colors">Privacy</a>
-            <a href="#" className="hover:text-green-600 transition-colors">Terms</a>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };
 
 const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) => (
-  <div className="p-8 bg-[#f5f7f6] rounded-[32px] border border-transparent hover:border-green-100 hover:bg-white transition-all group shadow-hover-xl">
+  <div className="p-8 bg-[#f5f7f6] rounded-[32px] border border-transparent hover:border-green-200 transition-all group shadow-hover-xl">
     <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-all mb-6">
       {icon}
     </div>

@@ -17,9 +17,12 @@ import {
   Droplet,
   Wind,
   Activity,
-  Check
+  Check,
+  Scissors
 } from 'lucide-react';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
+import { MapView } from '../../components/MapView';
+import { MapFull } from '../../components/MapFull';
 
 interface FormStepProps {
   isLoggedIn: boolean;
@@ -114,14 +117,13 @@ const ACTIONS = [
   { label: 'Pestisida', icon: Bug }
 ];
 
-import { Scissors } from 'lucide-react';
-
 export const FormStep = ({
   isLoggedIn,
   scannedId,
   assetName,
   scannedCategory,
   manualAddress,
+  coords,
   loading,
   onReset,
   onCommit,
@@ -161,12 +163,13 @@ export const FormStep = ({
 }: FormStepProps) => {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const detailCameraRef = useRef<HTMLInputElement>(null);
+  const [isMapFull, setIsMapFull] = useState(false);
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-white min-h-screen max-w-8xl mx-auto">
       {/* Header - Full Width */}
       <div className="border-b border-gray-100 bg-white sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 bg-emerald-600 rounded-lg flex items-center justify-center">
@@ -206,7 +209,7 @@ export const FormStep = ({
       </div>
 
       {/* Form Content - Full Width */}
-      <div className={`max-w-5xl mx-auto px-4 sm:px-6 py-6 ${!isLoggedIn ? 'opacity-60 pointer-events-none' : ''}`}>
+      <div className={`w-full px-4 sm:px-6 py-6 ${!isLoggedIn ? 'opacity-60 pointer-events-none' : ''}`}>
         <div className="space-y-8">
           {/* Fase Pertumbuhan */}
           <section>
@@ -223,8 +226,8 @@ export const FormStep = ({
                     key={phase.value}
                     onClick={() => setFasePertumbuhan(phase.value)}
                     className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isActive
-                        ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                   >
                     <Icon size={14} />
@@ -250,8 +253,8 @@ export const FormStep = ({
                     key={status.value}
                     onClick={() => setDeployStatus(status.value)}
                     className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isActive
-                        ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                   >
                     <Icon size={14} />
@@ -386,8 +389,8 @@ export const FormStep = ({
                         key={m.value}
                         onClick={() => setKelembapanTanah(m.value)}
                         className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-sm font-medium transition-all ${isActive
-                            ? 'bg-teal-600 text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          ? 'bg-teal-600 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                           }`}
                       >
                         <Icon size={14} />
@@ -415,8 +418,8 @@ export const FormStep = ({
                       key={color.value}
                       onClick={() => setWarnaDaun(color.value)}
                       className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${warnaDaun === color.value
-                          ? 'bg-gray-900 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        ? 'bg-gray-900 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                     >
                       <div className={`w-2.5 h-2.5 rounded-full ${color.color}`} />
@@ -437,8 +440,8 @@ export const FormStep = ({
                         key={pest.value}
                         onClick={() => setStatusHama(pest.value)}
                         className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${isActive
-                            ? 'bg-red-600 text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          ? 'bg-red-600 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                           }`}
                       >
                         <Icon size={14} />
@@ -466,8 +469,8 @@ export const FormStep = ({
                     key={action.label}
                     onClick={() => toggleTindakan(action.label)}
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${isActive
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                   >
                     <Icon size={14} />
@@ -489,6 +492,51 @@ export const FormStep = ({
             />
           </section>
 
+          {/* Lokasi Realtime */}
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <MapPin size={16} className="text-emerald-600" />
+              <h4 className="text-sm font-semibold text-gray-900">Lokasi Koordinat Lapangan</h4>
+            </div>
+            {coords ? (
+              <div className="rounded-[1rem] overflow-hidden shadow-lg h-[400px] w-full relative group transition-all duration-300">
+                <MapView
+                  checkIns={[{
+                    id: 'current_scan',
+                    barcode_id: scannedId,
+                    lat: coords.lat,
+                    lng: coords.lng,
+                    category: scannedCategory,
+                    condition: deployStatus,
+                    photo_url: photoPreview || '',
+                    created_at: new Date().toISOString(),
+                    asset_name: assetName,
+                    tinggi_tanaman: Number(tinggiTanaman) || 0,
+                    lebar_kanopi: Number(lebarKanopi) || 0,
+                    diameter_batang: Number(diameterBatang) || 0
+                  }]}
+                  center={[coords.lat, coords.lng]}
+                  zoom={17}
+                  focusLocation={[coords.lat, coords.lng]}
+                  className="w-full h-full"
+                  onFullscreen={() => setIsMapFull(true)}
+                />
+                <div className="absolute top-4 right-16 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm z-[2000] flex flex-col items-end">
+                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Akurasi GPS</span>
+                  <span className={`text-xs font-black ${coords.accuracy <= 10 ? 'text-emerald-600' : coords.accuracy <= 30 ? 'text-amber-500' : 'text-red-500'}`}>
+                    {coords.accuracy.toFixed(1)} Meter
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="h-[400px] w-full rounded-[1rem] border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 bg-gray-50 transition-all">
+                <Loader2 size={24} className="mb-2 animate-spin text-emerald-500" />
+                <span className="text-sm font-medium">Melacak koordinat satelit GPS...</span>
+                <span className="text-xs mt-1">Pastikan izin lokasi diaktifkan</span>
+              </div>
+            )}
+          </section>
+
           {/* Dokumentasi */}
           <section>
             <div className="flex items-center gap-2 mb-4">
@@ -501,8 +549,8 @@ export const FormStep = ({
                 <div
                   onClick={() => cameraInputRef.current?.click()}
                   className={`aspect-video rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden ${photoPreview
-                      ? 'border-emerald-500 bg-gray-50'
-                      : 'border-gray-200 hover:border-emerald-300 hover:bg-gray-50'
+                    ? 'border-emerald-500 bg-gray-50'
+                    : 'border-gray-200 hover:border-emerald-300 hover:bg-gray-50'
                     }`}
                 >
                   {photoPreview ? (
@@ -521,8 +569,8 @@ export const FormStep = ({
                 <div
                   onClick={() => detailCameraRef.current?.click()}
                   className={`aspect-video rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden ${photoDetailPreview
-                      ? 'border-emerald-500 bg-gray-50'
-                      : 'border-gray-200 hover:border-emerald-300 hover:bg-gray-50'
+                    ? 'border-emerald-500 bg-gray-50'
+                    : 'border-gray-200 hover:border-emerald-300 hover:bg-gray-50'
                     }`}
                 >
                   {photoDetailPreview ? (
@@ -585,6 +633,31 @@ export const FormStep = ({
           </div>
         </div>
       </div>
+      
+      {/* MapFull Integration */}
+      {coords && (
+        <MapFull 
+          isOpen={isMapFull}
+          onClose={() => setIsMapFull(false)}
+          checkIns={[{
+            id: 'current_scan',
+            barcode_id: scannedId,
+            lat: coords.lat,
+            lng: coords.lng,
+            category: scannedCategory,
+            condition: deployStatus,
+            photo_url: photoPreview || '',
+            created_at: new Date().toISOString(),
+            asset_name: assetName,
+            tinggi_tanaman: Number(tinggiTanaman) || 0,
+            lebar_kanopi: Number(lebarKanopi) || 0,
+            diameter_batang: Number(diameterBatang) || 0
+          }]}
+          center={[coords.lat, coords.lng]}
+          zoom={18}
+          focusLocation={[coords.lat, coords.lng]}
+        />
+      )}
     </div>
   );
 };

@@ -89,7 +89,7 @@ export const Signup = () => {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               className="w-full px-5 py-4 bg-gray-50 rounded-2xl text-sm font-semibold text-gray-900 border-2 border-gray-100 focus:border-green-500 focus:bg-white focus:ring-0 outline-none transition-all placeholder:text-gray-400 placeholder:font-medium"
-              placeholder="John Doe"
+              placeholder="Ahmad Fatoni"
             />
           </div>
 

@@ -193,7 +193,7 @@ export const ScannerPage = () => {
           error={fileScanError}
         />
       ) : scannedId ? (
-        <div className="max-w-[1200px] mx-auto px-0 lg:px-6 pb-20">
+        <div className="w-full px-0 pb-20">
              <FormStep 
               isLoggedIn={isLoggedIn}
               scannedId={scannedId}
